@@ -1,0 +1,30 @@
+{
+  "welcome": "Welcome to LocalJobs. Connecting you with nearby verified work.",
+  "choose_language": "Welcome to LocalJobs. For Telugu press 1. Hindi ke liye 2 dabayein. For English press 3.",
+  "choose_category": "Choose work: Press 1 for Driver. Press 2 for Construction. Press 3 for Electrician. Press 4 for Cleaner. Press 5 for Shop or Helper.",
+  "choose_location": "Select area: Press 1 for Uppal. Press 2 for Kukatpally. Press 3 for Dilsukhnagar. Press 4 for Secunderabad. Press 5 for All nearby areas.",
+  "searching_jobs": "Searching verified jobs near you. Please wait.",
+  "job_template": "Job {index}: {job_type} required in {locality}. Salary {salary} rupees per {salary_type}. Press 1 if you are interested. Press 2 for next job. Press 9 for main menu.",
+  "no_more_jobs": "You have reached the end of available jobs in this category. Press 9 to return to main menu or hang up.",
+  "no_jobs": "No verified jobs found in this category right now. Please press 9 to try another category.",
+  "application_success": "Thank you! Your interest has been submitted using your phone number. The employer will call you soon. Press 2 to hear more jobs, or 9 for main menu.",
+  "application_duplicate": "You have already applied for this job. The employer already has your phone number and will contact you. Press 2 for next job, or 9 for main menu.",
+  "invalid_choice": "Invalid choice. Please try again.",
+  "timeout": "We did not receive any input. Please make a selection.",
+  "max_retries": "Too many invalid attempts. Returning to main menu.",
+  "goodbye": "Thank you for calling LocalJobs. Good luck with your work search. Goodbye.",
+  "categories": {
+    "1": "Driver",
+    "2": "Construction",
+    "3": "Electrician",
+    "4": "Cleaner",
+    "5": "Shop / Helper"
+  },
+  "locations": {
+    "1": "Uppal",
+    "2": "Kukatpally",
+    "3": "Dilsukhnagar",
+    "4": "Secunderabad",
+    "5": "All"
+  }
+}

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalJobs — Employer Portal</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-badge">EMPLOYER</div>
+      <div>
+        <div class="brand-title">LocalJobs Business</div>
+        <div class="brand-subtitle">Hire Verified Blue-Collar & Local Workers</div>
+      </div>
+    </div>
+    <nav class="nav-links">
+      <a href="/">Worker View</a>
+      <a href="/employer" class="active">Employer Portal</a>
+      <a href="/admin">Admin Review</a>
+      <a href="/simulator" class="call-banner-btn">📞 Dial IVR</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    
+    <!-- Employer Verification Status Notice -->
+    <div class="alert alert-warning" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+      <div>
+        <b>🔒 Quality & Trust Protocol:</b> All new job postings undergo mandatory administrative verification before they are broadcast via our 1800 voice IVR service.
+      </div>
+      <span class="badge badge-verified">Zero Spam Guarantee</span>
+    </div>
+
+    <!-- Employer Tabs -->
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+      <button class="btn btn-primary" onclick="switchTab('post')">➕ Post a New Job</button>
+      <button class="btn btn-outline" onclick="switchTab('jobs')">📋 My Posted Jobs</button>
+      <button class="btn btn-outline" onclick="switchTab('register')">🏢 Company Registration / Profile</button>
+    </div>
+
+    <!-- Tab 1: Post Job Form -->
+    <div id="tab-post" class="card">
+      <div class="card-header">
+        <h2>Post a Local Job Requirement</h2>
+      </div>
+
+      <form id="post-job-form" onsubmit="handlePostJob(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Employer / Company ID *</label>
+            <input type="text" id="emp-id" class="form-control" value="EMP-101" required>
+            <small style="color: #666;">Use EMP-101 (Sri Krishna Logistics) or register below.</small>
+          </div>
+          <div class="form-group">
+            <label>Job Type / Category *</label>
+            <select id="job-type" class="form-control" required>
+              <option value="Driver">Driver (డ్రైవర్ / कार चालक)</option>
+              <option value="Construction">Construction Worker (భవన నిర్మాణం / निर्माण)</option>
+              <option value="Electrician">Electrician (ఎలక్ట్రీషియన్ / बिजली मिस्त्री)</option>
+              <option value="Cleaner">Cleaner / Housekeeping (క్లీనర్ / सफाई)</option>
+              <option value="Shop / Helper">Shop / Helper (షాప్ సహాయకుడు / दुकान सहायक)</option>
+              <option value="Plumber">Plumber (ప్లంబర్ / प्लंबर)</option>
+              <option value="Security Guard">Security Guard (సెక్యూరిటీ గార్డ్ / सुरक्षा गार्ड)</option>
+              <option value="Delivery">Delivery Executive (డెలివరీ / डिलीवरी)</option>
+              <option value="Cook">Cook / Kitchen Staff (వంట మనిషి / रसोइया)</option>
+              <option value="Other">Other Local Work (ఇతర పనులు / अन्य)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Locality / Neighborhood (e.g. Uppal, Kukatpally) *</label>
+            <input type="text" id="job-locality" class="form-control" placeholder="e.g. Uppal" required>
+          </div>
+          <div class="form-group">
+            <label>City / Location *</label>
+            <input type="text" id="job-city" class="form-control" value="Hyderabad" required>
+          </div>
+          <div class="form-group">
+            <label>District *</label>
+            <input type="text" id="job-district" class="form-control" value="Medchal-Malkajgiri" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Salary (Amount in ₹) *</label>
+            <input type="number" id="job-salary" class="form-control" placeholder="e.g. 18000" min="100" required>
+          </div>
+          <div class="form-group">
+            <label>Salary Type *</label>
+            <select id="salary-type" class="form-control">
+              <option value="Month">Per Month (నెలకు)</option>
+              <option value="Day">Per Day (రోజుకు)</option>
+              <option value="Week">Per Week (వారానికి)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Vacancies (Number of openings) *</label>
+            <input type="number" id="job-vacancies" class="form-control" value="1" min="1" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Working Hours (Shift Timing)</label>
+            <input type="text" id="job-hours" class="form-control" value="9 AM - 6 PM">
+          </div>
+          <div class="form-group">
+            <label>Required Experience</label>
+            <input type="text" id="job-exp" class="form-control" value="Fresher / Any">
+          </div>
+          <div class="form-group">
+            <label>Listing Expiry Date</label>
+            <input type="date" id="job-expiry" class="form-control" value="2026-12-31">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Job Description & Responsibilities</label>
+          <textarea id="job-desc" class="form-control" rows="3" placeholder="Explain the work required in simple, clear language..."></textarea>
+        </div>
+
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <button type="submit" class="btn btn-primary btn-lg">Submit Job for Admin Verification</button>
+        </div>
+        <div id="post-status" style="margin-top: 1rem;"></div>
+      </form>
+    </div>
+
+    <!-- Tab 2: My Jobs -->
+    <div id="tab-jobs" class="card" style="display: none;">
+      <div class="card-header">
+        <h2>Jobs Dashboard</h2>
+      </div>
+      <p style="color: #666; margin-bottom: 1rem;">All jobs you have submitted. Unverified jobs appear as <span class="badge badge-pending">Pending</span> until approved.</p>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Job ID</th>
+              <th>Category</th>
+              <th>Locality</th>
+              <th>Salary</th>
+              <th>Status</th>
+              <th>Verification</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="employer-jobs-tbody">
+            <!-- Loaded by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 3: Employer Registration -->
+    <div id="tab-register" class="card" style="display: none;">
+      <div class="card-header">
+        <h2>Register New Employer Account</h2>
+      </div>
+      <form onsubmit="handleRegisterEmployer(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Company / Business Name *</label>
+            <input type="text" id="reg-company" class="form-control" placeholder="e.g. Sri Krishna Logistics" required>
+          </div>
+          <div class="form-group">
+            <label>Contact Person Name *</label>
+            <input type="text" id="reg-contact" class="form-control" placeholder="e.g. Ramesh Reddy" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Official Phone Number *</label>
+            <input type="tel" id="reg-phone" class="form-control" placeholder="e.g. 9876543210" required>
+          </div>
+          <div class="form-group">
+            <label>Business Location / Address *</label>
+            <input type="text" id="reg-loc" class="form-control" placeholder="e.g. Uppal, Hyderabad" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit Registration</button>
+        <div id="reg-status" style="margin-top: 1rem;"></div>
+      </form>
+    </div>
+
+  </main>
+
+  <script>
+    function switchTab(tab) {
+      document.getElementById('tab-post').style.display = tab === 'post' ? 'block' : 'none';
+      document.getElementById('tab-jobs').style.display = tab === 'jobs' ? 'block' : 'none';
+      document.getElementById('tab-register').style.display = tab === 'register' ? 'block' : 'none';
+      if (tab === 'jobs') loadAllJobs();
+    }
+
+    async function handlePostJob(e) {
+      e.preventDefault();
+      const statusDiv = document.getElementById('post-status');
+      statusDiv.innerHTML = '<div class="alert alert-info">Submitting job...</div>';
+
+      const payload = {
+        employer_id: document.getElementById('emp-id').value.trim(),
+        job_type: document.getElementById('job-type').value,
+        location: document.getElementById('job-city').value.trim(),
+        locality: document.getElementById('job-locality').value.trim(),
+        district: document.getElementById('job-district').value.trim(),
+        state: 'Telangana',
+        salary: parseInt(document.getElementById('job-salary').value),
+        salary_type: document.getElementById('salary-type').value,
+        hours: document.getElementById('job-hours').value.trim(),
+        required_experience: document.getElementById('job-exp').value.trim(),
+        vacancies: parseInt(document.getElementById('job-vacancies').value),
+        description: document.getElementById('job-desc').value.trim(),
+        expiry_date: document.getElementById('job-expiry').value
+      };
+
+      try {
+        const res = await fetch('/jobs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Employer-Secret': 'localjobs_employer_secure_secret_token_67890'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.status === 201) {
+          const created = await res.json();
+          statusDiv.innerHTML = `
+            <div class="alert alert-success">
+              <b>✓ Job Created Successfully (${created.JobID})!</b><br>
+              Status: <span class="badge badge-pending">Pending Verification</span>.<br>
+              An administrator will verify your posting before it goes live on the 1800 IVR.
+            </div>
+          `;
+          document.getElementById('post-job-form').reset();
+        } else {
+          const err = await res.json();
+          statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${err.detail || 'Failed to submit job'}</div>`;
+        }
+      } catch (err) {
+        statusDiv.innerHTML = '<div class="alert alert-danger">Network error connecting to backend.</div>';
+      }
+    }
+
+    async function handleRegisterEmployer(e) {
+      e.preventDefault();
+      const statusDiv = document.getElementById('reg-status');
+      statusDiv.innerHTML = '<div class="alert alert-info">Submitting registration...</div>';
+
+      const payload = {
+        company_name: document.getElementById('reg-company').value.trim(),
+        contact_name: document.getElementById('reg-contact').value.trim(),
+        phone: document.getElementById('reg-phone').value.trim(),
+        location: document.getElementById('reg-loc').value.trim()
+      };
+
+      try {
+        const res = await fetch('/employers', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+
+        if (res.status === 201) {
+          const emp = await res.json();
+          statusDiv.innerHTML = `
+            <div class="alert alert-success">
+              <b>✓ Employer Registered (${emp.EmployerID})!</b><br>
+              Your account has been submitted for verification. Please keep your Employer ID for job postings.
+            </div>
+          `;
+        } else {
+          const err = await res.json();
+          statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${err.detail || 'Registration failed'}</div>`;
+        }
+      } catch (err) {
+        statusDiv.innerHTML = '<div class="alert alert-danger">Network error connecting to server.</div>';
+      }
+    }
+
+    async function loadAllJobs() {
+      const res = await fetch('/admin/jobs', {
+        headers: {'X-Admin-Secret': 'localjobs_admin_secure_secret_token_12345'}
+      });
+      if (!res.ok) {
+        // Fallback to public
+        const pubRes = await fetch('/jobs');
+        const pubJobs = await pubRes.json();
+        renderTable(pubJobs);
+        return;
+      }
+      const jobs = await res.json();
+      renderTable(jobs);
+    }
+
+    function renderTable(jobs) {
+      const tbody = document.getElementById('employer-jobs-tbody');
+      tbody.innerHTML = jobs.map(j => `
+        <tr>
+          <td><b>${j.JobID}</b></td>
+          <td>${j.JobType}</td>
+          <td>${j.Locality}</td>
+          <td>₹${j.Salary.toLocaleString()} / ${j.SalaryType}</td>
+          <td><span class="badge ${j.Status === 'Active' ? 'badge-verified' : 'badge-closed'}">${j.Status}</span></td>
+          <td><span class="badge ${j.Verified === 'Verified' ? 'badge-verified' : 'badge-pending'}">${j.Verified}</span></td>
+          <td>${j.CreatedAt}</td>
+        </tr>
+      `).join('');
+    }
+  </script>
+</body>
+</html>

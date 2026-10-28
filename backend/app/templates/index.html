@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalJobs — Voice-First Local Employment Platform</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-badge">BHARAT</div>
+      <div>
+        <div class="brand-title">LocalJobs</div>
+        <div class="brand-subtitle">లోకల్ జాబ్స్ • लोकल जॉब्स • Local Work</div>
+      </div>
+    </div>
+    <nav class="nav-links">
+      <a href="/" class="active">Worker Portal</a>
+      <a href="/employer">Employer Portal</a>
+      <a href="/admin">Admin Review</a>
+      <a href="/simulator" class="call-banner-btn">📞 Phone Simulator (Dial IVR)</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    
+    <!-- Hero Toll-Free Banner -->
+    <div class="card" style="background: linear-gradient(135deg, #1F497D 0%, #0D233A 100%); color: white; border: none; text-align: center; padding: 2rem 1rem;">
+      <h1 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 0.5rem;" id="hero-title">
+        మీ ఫోన్ నుండి నేరుగా స్థానిక ఉద్యోగాలు పొందండి
+      </h1>
+      <p style="font-size: 1.1rem; opacity: 0.9; margin-bottom: 1.5rem;" id="hero-desc">
+        No internet or smartphone needed. Dial our toll-free voice service anytime.
+      </p>
+
+      <div style="background: white; color: #1F497D; display: inline-flex; align-items: center; gap: 1rem; padding: 0.75rem 1.5rem; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+        <span style="font-size: 1.8rem;">📞</span>
+        <div style="text-align: left;">
+          <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #E65100;">Toll-Free Helpline</div>
+          <div style="font-size: 1.6rem; font-weight: 900; letter-spacing: 1px;">1800-LOCAL-JOB</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.25rem;">
+        <a href="/simulator" class="btn btn-accent btn-lg" style="box-shadow: 0 4px 12px rgba(230, 81, 0, 0.4);">
+          🔊 Try Voice Call Simulator (Keypad 1-2-3)
+        </a>
+      </div>
+    </div>
+
+    <!-- Language Selector & Quick Action Tabs -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-primary" onclick="setLang('te')">తెలుగు (Telugu)</button>
+        <button class="btn btn-outline" onclick="setLang('hi')">हिंदी (Hindi)</button>
+        <button class="btn btn-outline" onclick="setLang('en')">English</button>
+      </div>
+      <div>
+        <span style="font-weight: 600; color: #555;">Verified Local Employers Only</span>
+      </div>
+    </div>
+
+    <!-- Quick Big Visual Category Buttons (Low Literacy Friendly) -->
+    <div class="card">
+      <h2 style="font-size: 1.3rem; margin-bottom: 1rem;" id="cat-heading">Find Verified Jobs Nearby</h2>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <button class="btn btn-outline btn-lg" onclick="filterCategory('Driver')" style="flex-direction: column; padding: 1.25rem 0.5rem;">
+          <span style="font-size: 2rem;">🚗</span>
+          <span style="font-weight: 700;">Driver</span>
+          <span style="font-size: 0.8rem; color: #666;">డ్రైవర్ / ड्राइवर</span>
+        </button>
+        <button class="btn btn-outline btn-lg" onclick="filterCategory('Construction')" style="flex-direction: column; padding: 1.25rem 0.5rem;">
+          <span style="font-size: 2rem;">🏗️</span>
+          <span style="font-weight: 700;">Construction</span>
+          <span style="font-size: 0.8rem; color: #666;">భవన నిర్మాణం / निर्माण</span>
+        </button>
+        <button class="btn btn-outline btn-lg" onclick="filterCategory('Electrician')" style="flex-direction: column; padding: 1.25rem 0.5rem;">
+          <span style="font-size: 2rem;">⚡</span>
+          <span style="font-weight: 700;">Electrician</span>
+          <span style="font-size: 0.8rem; color: #666;">ఎలక్ట్రీషియన్ / बिजली</span>
+        </button>
+        <button class="btn btn-outline btn-lg" onclick="filterCategory('Cleaner')" style="flex-direction: column; padding: 1.25rem 0.5rem;">
+          <span style="font-size: 2rem;">🧹</span>
+          <span style="font-weight: 700;">Cleaner</span>
+          <span style="font-size: 0.8rem; color: #666;">క్లీనర్ / सफाई</span>
+        </button>
+        <button class="btn btn-outline btn-lg" onclick="filterCategory('Shop / Helper')" style="flex-direction: column; padding: 1.25rem 0.5rem;">
+          <span style="font-size: 2rem;">🛒</span>
+          <span style="font-weight: 700;">Shop / Helper</span>
+          <span style="font-size: 0.8rem; color: #666;">షాప్ హెల్పర్ / सहायक</span>
+        </button>
+        <button class="btn btn-outline btn-lg" onclick="filterCategory('')" style="flex-direction: column; padding: 1.25rem 0.5rem;">
+          <span style="font-size: 2rem;">🔍</span>
+          <span style="font-weight: 700;">All Jobs</span>
+          <span style="font-size: 0.8rem; color: #666;">అన్ని ఉద్యోగాలు</span>
+        </button>
+      </div>
+
+      <!-- Search & Locality Filter -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Filter by Locality (ప్రాంతం):</label>
+          <select id="locality-select" class="form-control" onchange="loadJobs()">
+            <option value="">All Localities (అన్ని ప్రాంతాలు)</option>
+            <option value="Uppal">Uppal (ఉప్పల్)</option>
+            <option value="Kukatpally">Kukatpally (కూకట్‌పల్లి)</option>
+            <option value="Dilsukhnagar">Dilsukhnagar (దిల్‍సుఖ్‍నగర్)</option>
+            <option value="Secunderabad">Secunderabad (సికింద్రాబాద్)</option>
+          </select>
+        </div>
+        <div class="form-group" style="display: flex; align-items: flex-end;">
+          <button class="btn btn-primary" onclick="loadJobs()" style="width: 100%;">Refresh Jobs</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Jobs List -->
+    <div id="jobs-container" class="jobs-grid">
+      <!-- Injected by JavaScript -->
+    </div>
+
+    <!-- 1-Click Application Modal -->
+    <div id="apply-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center;">
+      <div class="card" style="max-width: 440px; width: 90%; margin: auto; padding: 2rem;">
+        <h3 id="modal-job-title" style="margin-bottom: 0.5rem; color: var(--primary);">Apply for Job</h3>
+        <p id="modal-job-desc" style="color: #666; font-size: 0.95rem; margin-bottom: 1.25rem;"></p>
+        
+        <div class="form-group">
+          <label>Enter Your Phone Number (మీ ఫోన్ నంబర్):</label>
+          <input type="tel" id="worker-phone" class="form-control" placeholder="9848012345" style="font-size: 1.2rem; font-weight: 600;">
+          <small style="color: #666;">The employer will call this number directly.</small>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+          <button class="btn btn-accent btn-lg" style="flex: 1;" onclick="submitInterest()">Submit (నేను ఆసక్తిగా ఉన్నాను)</button>
+          <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        </div>
+        <div id="modal-status" style="margin-top: 1rem;"></div>
+      </div>
+    </div>
+
+    <!-- Check My Applications Section -->
+    <div class="card" style="margin-top: 2rem;">
+      <div class="card-header">
+        <h3>My Applications (నా దరఖాస్తులు)</h3>
+      </div>
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <input type="tel" id="check-phone" class="form-control" placeholder="Enter your 10-digit phone number" style="max-width: 320px;">
+        <button class="btn btn-primary" onclick="checkMyApps()">Check Status</button>
+      </div>
+      <div id="my-apps-result" style="margin-top: 1rem;"></div>
+    </div>
+
+  </main>
+
+  <script>
+    let currentCategory = '';
+    let selectedJobId = null;
+
+    async function loadJobs() {
+      const locality = document.getElementById('locality-select').value;
+      let url = '/jobs?';
+      if (currentCategory) url += `job_type=${encodeURIComponent(currentCategory)}&`;
+      if (locality) url += `locality=${encodeURIComponent(locality)}`;
+
+      const res = await fetch(url);
+      const jobs = await res.json();
+      const container = document.getElementById('jobs-container');
+
+      if (!jobs || jobs.length === 0) {
+        container.innerHTML = `
+          <div class="card" style="grid-column: 1/-1; text-align: center; padding: 2rem;">
+            <h3>No active verified jobs found</h3>
+            <p style="color: #666;">Try choosing another category or area, or call 1800-LOCAL-JOB.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = jobs.map(j => `
+        <div class="job-card">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+              <div class="job-type-title">${j.JobType}</div>
+              <span class="badge badge-verified">✓ Verified</span>
+            </div>
+            <div class="job-locality">📍 ${j.Locality}, ${j.Location}</div>
+            <div class="job-salary">₹${j.Salary.toLocaleString()} <span style="font-size: 0.85rem; color: #555;">per ${j.SalaryType}</span></div>
+            <p style="font-size: 0.95rem; color: #444; margin-bottom: 0.75rem;">${j.Description}</p>
+            <div style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
+              <span>🕒 ${j.Hours}</span> • <span>Exp: ${j.RequiredExperience}</span> • <span>Vacancies: ${j.Vacancies}</span>
+            </div>
+          </div>
+          <button class="btn btn-accent" style="width: 100%;" onclick="openApply('${j.JobID}', '${j.JobType}', '${j.Locality}')">
+            📞 Interested / Apply (ఆసక్తి ఉంది)
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function filterCategory(cat) {
+      currentCategory = cat;
+      loadJobs();
+    }
+
+    function openApply(jobId, jobType, locality) {
+      selectedJobId = jobId;
+      document.getElementById('modal-job-title').innerText = `Apply: ${jobType}`;
+      document.getElementById('modal-job-desc').innerText = `Location: ${locality} (Job ID: ${jobId})`;
+      document.getElementById('modal-status').innerHTML = '';
+      document.getElementById('apply-modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('apply-modal').style.display = 'none';
+      selectedJobId = null;
+    }
+
+    async function submitInterest() {
+      const phone = document.getElementById('worker-phone').value.trim();
+      const statusDiv = document.getElementById('modal-status');
+      if (!phone) {
+        statusDiv.innerHTML = '<div class="alert alert-warning">Please enter your phone number.</div>';
+        return;
+      }
+
+      statusDiv.innerHTML = '<div class="alert alert-info">Submitting application...</div>';
+      try {
+        const res = await fetch('/applications', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            worker_phone: phone,
+            job_id: selectedJobId
+          })
+        });
+
+        if (res.status === 201) {
+          statusDiv.innerHTML = '<div class="alert alert-success">✓ Application submitted! The employer will call you soon.</div>';
+          setTimeout(closeModal, 2500);
+        } else if (res.status === 409) {
+          statusDiv.innerHTML = '<div class="alert alert-warning">Notice: You have already applied for this job. The employer already has your number!</div>';
+        } else {
+          const err = await res.json();
+          statusDiv.innerHTML = `<div class="alert alert-danger">${err.detail || 'Error submitting application.'}</div>`;
+        }
+      } catch (e) {
+        statusDiv.innerHTML = '<div class="alert alert-danger">Network error. Please try again or dial 1800-LOCAL-JOB.</div>';
+      }
+    }
+
+    async function checkMyApps() {
+      const phone = document.getElementById('check-phone').value.trim();
+      const resDiv = document.getElementById('my-apps-result');
+      if (!phone) {
+        resDiv.innerHTML = '<div class="alert alert-warning">Please enter your phone number.</div>';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/applications/${encodeURIComponent(phone)}`);
+        if (!res.ok) {
+          resDiv.innerHTML = '<div class="alert alert-warning">No applications found for this phone number.</div>';
+          return;
+        }
+        const apps = await res.json();
+        if (apps.length === 0) {
+          resDiv.innerHTML = '<div class="alert alert-info">No applications submitted yet.</div>';
+          return;
+        }
+        resDiv.innerHTML = `
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Application ID</th>
+                <th>Job ID</th>
+                <th>Applied At</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${apps.map(a => `
+                <tr>
+                  <td><b>${a.ApplicationID}</b></td>
+                  <td>${a.JobID}</td>
+                  <td>${a.AppliedAt}</td>
+                  <td><span class="badge badge-verified">${a.Status}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } catch (e) {
+        resDiv.innerHTML = '<div class="alert alert-danger">Error retrieving applications.</div>';
+      }
+    }
+
+    function setLang(lang) {
+      if (lang === 'te') {
+        document.getElementById('hero-title').innerText = 'మీ ఫోన్ నుండి నేరుగా స్థానిక ఉద్యోగాలు పొందండి';
+        document.getElementById('cat-heading').innerText = 'పరిశీలించిన స్థానిక ఉద్యోగాలు';
+      } else if (lang === 'hi') {
+        document.getElementById('hero-title').innerText = 'अपने फोन से सीधे नजदीकी नौकरियां पाएं';
+        document.getElementById('cat-heading').innerText = 'सत्यापित स्थानीय नौकरियां';
+      } else {
+        document.getElementById('hero-title').innerText = 'Get Local Verified Jobs Directly On Your Phone';
+        document.getElementById('cat-heading').innerText = 'Verified Jobs Nearby';
+      }
+    }
+
+    loadJobs();
+  </script>
+</body>
+</html>
