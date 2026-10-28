@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 
+from backend.app.config import config, TelephonyMode
 from backend.app.api import jobs, categories, workers, applications, employers, ivr, llm
 from backend.app.repositories.excel_repository import excel_repo
 from backend.app.services.job_service import job_service
@@ -23,10 +24,11 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS
+# CORS Configuration
+origins = config.ALLOWED_ORIGINS if "*" not in config.ALLOWED_ORIGINS else ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,14 +47,13 @@ app.include_router(employers.router)
 app.include_router(ivr.router)
 app.include_router(llm.router)
 
-# --- Health Check ---
+# --- Health & Readiness Probes ---
 
 @app.get("/health", tags=["System"])
 async def health_check():
-    """System health check verifying Excel repository, Ollama LLM connectivity, and Telephony."""
+    """System health check verifying Excel repository, Ollama LLM connectivity, and Telephony mode."""
     storage_stats = excel_repo.get_storage_stats()
     
-    # Check Ollama
     ollama_url = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
     ollama_ok = False
     try:
@@ -62,24 +63,42 @@ async def health_check():
     except Exception:
         ollama_ok = False
 
+    telephony_info = config.get_telephony_display()
+
     return {
         "status": "healthy",
         "service": "LocalJobs",
         "version": "1.0.0",
+        "environment": config.APP_ENV,
         "excel_storage": {
             "status": "connected",
-            "file": str(excel_repo.file_path),
-            **storage_stats
+            "total_records": storage_stats.get("total_records", 0),
+            "concurrency_risk": storage_stats.get("concurrency_risk", "NORMAL"),
+            "migration_recommended": storage_stats.get("migration_recommended", False)
         },
         "telephony": {
-            "exotel_configured": exotel_provider.is_configured(),
-            "active_provider": "exotel" if exotel_provider.is_configured() else "mock_simulator"
+            "mode": telephony_info["mode"],
+            "badge": telephony_info["badge"],
+            "is_mock": telephony_info["is_mock"]
         },
         "ollama_llm": {
             "configured_url": ollama_url,
             "connected": ollama_ok
         }
     }
+
+@app.get("/ready", tags=["System"])
+def readiness_check():
+    """Readiness probe for container orchestrators (Render / Koyeb / K8s)."""
+    # Verify Excel file is accessible
+    if not excel_repo.file_path.exists():
+        return JSONResponse(status_code=503, content={"ready": False, "reason": "Storage file not accessible"})
+    return {"ready": True, "service": "LocalJobs"}
+
+@app.get("/telephony/status", tags=["System"])
+def get_telephony_status():
+    """Returns current active telephony tier: MOCK, TRIAL, or PRODUCTION."""
+    return config.get_telephony_display()
 
 # --- Web UI Routes ---
 
@@ -145,4 +164,5 @@ def get_all_workers_for_admin(_: bool = Depends(verify_admin)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=port, reload=False)

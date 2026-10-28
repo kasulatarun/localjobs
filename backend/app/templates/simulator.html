@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LocalJobs — IVR Voice Simulator</title>
   <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/config.js"></script>
   <style>
     .led-indicator {
       width: 10px;
@@ -57,7 +58,7 @@
                 STATE: IDLE
               </div>
               <div id="screen-prompt" style="font-size: 1rem; font-weight: 600; color: #1A202C; min-height: 90px; line-height: 1.4;">
-                Press "DIAL 1800-LOCAL-JOB" to start call.
+                Press "DIAL IVR" to start simulated telephone call.
               </div>
             </div>
 
@@ -90,7 +91,7 @@
           <!-- Call / End Action Buttons -->
           <div class="call-control-grid">
             <button id="dial-btn" class="btn btn-success btn-lg" onclick="startCall()">
-              📞 DIAL 1800
+              📞 DIAL IVR
             </button>
             <button id="hangup-btn" class="btn btn-danger btn-lg" onclick="endCall()" disabled>
               📴 HANG UP
@@ -132,7 +133,7 @@
             Deterministic execution path tracking state transitions, DTMF digits, and Excel database queries.
           </p>
           <div id="audit-log-box" style="background: #1A202C; color: #A0AEC0; font-family: monospace; font-size: 0.85rem; padding: 1rem; border-radius: 8px; height: 320px; overflow-y: auto;">
-            [SYSTEM READY] Telephony simulator initialized. Click 'DIAL 1800' to place incoming call.
+            [SYSTEM READY] Telephony simulator initialized. Click 'DIAL IVR' to place incoming call.
           </div>
         </div>
 
@@ -184,14 +185,15 @@
 
       document.getElementById('dial-btn').disabled = true;
       document.getElementById('hangup-btn').disabled = false;
-      document.getElementById('call-status-badge').innerHTML = '<span class="led-indicator led-green"></span> CONNECTED (1800-LOCAL-JOB)';
+      document.getElementById('call-status-badge').innerHTML = '<span class="led-indicator led-green"></span> CONNECTED (SIMULATED IVR)';
       document.getElementById('screen-state-tag').innerText = 'CONNECTING...';
 
       startTimer();
       logTrace(`Incoming Call from ${phone} (CallId: ${activeCallId})`, '#00E676');
 
+      const api = getApiBaseUrl();
       try {
-        const res = await fetch('/ivr/incoming', {
+        const res = await fetch(`${api}/ivr/incoming`, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
@@ -210,14 +212,15 @@
     async function pressDTMF(digit) {
       document.getElementById('last-key-pressed').innerText = digit;
       if (!callActive) {
-        logTrace(`Key '${digit}' pressed but no call in progress. Click 'DIAL 1800' first.`, '#FFB300');
+        logTrace(`Key '${digit}' pressed but no call in progress. Click 'DIAL IVR' first.`, '#FFB300');
         return;
       }
 
       logTrace(`Worker pressed DTMF: [ ${digit} ]`, '#64B5F6');
 
+      const api = getApiBaseUrl();
       try {
-        const res = await fetch('/ivr/dtmf', {
+        const res = await fetch(`${api}/ivr/dtmf`, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
@@ -240,8 +243,9 @@
       }
       logTrace(`Simulating 6-second timeout (No DTMF digit received)...`, '#FFB300');
 
+      const api = getApiBaseUrl();
       try {
-        const res = await fetch('/ivr/dtmf', {
+        const res = await fetch(`${api}/ivr/dtmf`, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
@@ -278,9 +282,10 @@
       callActive = false;
       stopTimer();
 
+      const api = getApiBaseUrl();
       if (activeCallId) {
         try {
-          await fetch('/ivr/callback', {
+          await fetch(`${api}/ivr/callback`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
@@ -296,7 +301,7 @@
       document.getElementById('hangup-btn').disabled = true;
       document.getElementById('call-status-badge').innerHTML = '<span class="led-indicator led-red"></span> ON HOOK (DISCONNECTED)';
       document.getElementById('screen-state-tag').innerText = 'CALL ENDED';
-      document.getElementById('screen-prompt').innerText = 'Call disconnected. Press "DIAL 1800" to test again.';
+      document.getElementById('screen-prompt').innerText = 'Call disconnected. Press "DIAL IVR" to test again.';
       document.getElementById('last-key-pressed').innerText = '—';
       
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();

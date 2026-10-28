@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: localjobs-backend
+    env: python
+    buildCommand: pip install -r requirements.txt && python backend/app/repositories/init_db.py
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: ADMIN_SECRET
+        generateValue: true
+      - key: EMPLOYER_SECRET
+        generateValue: true

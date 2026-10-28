@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalJobs — IVR Voice Simulator</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/config.js"></script>
+  <style>
+    .led-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .led-green { background: #00E676; box-shadow: 0 0 8px #00E676; }
+    .led-red { background: #FF1744; }
+  </style>
+</head>
+<body>
+
+  <header class="app-header" style="background: #1A202C;">
+    <div class="brand">
+      <div class="brand-badge" style="background: #00E676; color: #1A202C;">SIMULATOR</div>
+      <div>
+        <div class="brand-title">LocalJobs IVR Telephone Simulator</div>
+        <div class="brand-subtitle">DTMF Testing Engine & Live Voice Synthesizer</div>
+      </div>
+    </div>
+    <nav class="nav-links">
+      <a href="/">Worker View</a>
+      <a href="/employer">Employer View</a>
+      <a href="/admin">Admin Console</a>
+      <a href="/simulator" class="active">📞 Simulator</a>
+    </nav>
+  </header>
+
+  <main class="container">
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 2rem;">
+      
+      <!-- Virtual Telephone Device -->
+      <div>
+        <div class="phone-wrapper">
+          
+          <!-- Screen -->
+          <div class="phone-screen">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
+                <span id="call-status-badge" style="font-size: 0.8rem; font-weight: 700; color: #718096;">
+                  <span class="led-indicator led-red"></span> ON HOOK (DISCONNECTED)
+                </span>
+                <span id="call-timer" style="font-size: 0.8rem; font-weight: 700; color: #718096;">00:00</span>
+              </div>
+              
+              <div id="screen-state-tag" style="font-size: 0.75rem; text-transform: uppercase; color: #E65100; font-weight: 800; margin-bottom: 0.25rem;">
+                STATE: IDLE
+              </div>
+              <div id="screen-prompt" style="font-size: 1rem; font-weight: 600; color: #1A202C; min-height: 90px; line-height: 1.4;">
+                Press "DIAL IVR" to start simulated telephone call.
+              </div>
+            </div>
+
+            <!-- Last Key Indicator -->
+            <div style="background: #F7FAFC; padding: 0.4rem 0.6rem; border-radius: 6px; display: flex; justify-content: space-between; font-size: 0.8rem; color: #4A5568;">
+              <span>Last Key Pressed: <b id="last-key-pressed" style="color: #E65100;">—</b></span>
+              <span>Audio: <b id="audio-state">Speech ON 🔊</b></span>
+            </div>
+          </div>
+
+          <!-- Keypad 3x4 -->
+          <div class="phone-keypad">
+            <button class="key-btn" onclick="pressDTMF('1')">1 <span class="sub">TE / .</span></button>
+            <button class="key-btn" onclick="pressDTMF('2')">2 <span class="sub">HI / ABC</span></button>
+            <button class="key-btn" onclick="pressDTMF('3')">3 <span class="sub">EN / DEF</span></button>
+            
+            <button class="key-btn" onclick="pressDTMF('4')">4 <span class="sub">GHI</span></button>
+            <button class="key-btn" onclick="pressDTMF('5')">5 <span class="sub">JKL</span></button>
+            <button class="key-btn" onclick="pressDTMF('6')">6 <span class="sub">MNO</span></button>
+            
+            <button class="key-btn" onclick="pressDTMF('7')">7 <span class="sub">PQRS</span></button>
+            <button class="key-btn" onclick="pressDTMF('8')">8 <span class="sub">TUV</span></button>
+            <button class="key-btn" onclick="pressDTMF('9')">9 <span class="sub">MENU</span></button>
+            
+            <button class="key-btn" onclick="pressDTMF('*')">*</button>
+            <button class="key-btn" onclick="pressDTMF('0')">0</button>
+            <button class="key-btn" onclick="pressDTMF('#')">#</button>
+          </div>
+
+          <!-- Call / End Action Buttons -->
+          <div class="call-control-grid">
+            <button id="dial-btn" class="btn btn-success btn-lg" onclick="startCall()">
+              📞 DIAL IVR
+            </button>
+            <button id="hangup-btn" class="btn btn-danger btn-lg" onclick="endCall()" disabled>
+              📴 HANG UP
+            </button>
+          </div>
+
+          <!-- Special Test Controls -->
+          <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+            <button class="btn btn-outline" style="flex: 1; color: white; border-color: #718096; font-size: 0.85rem;" onclick="simulateTimeout()">
+              ⏱️ Simulate Timeout (No Input)
+            </button>
+            <button class="btn btn-outline" style="color: white; border-color: #718096; font-size: 0.85rem;" onclick="toggleAudio()">
+              🔊 Mute/Voice
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Call Settings & State Machine Audit Trace -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Caller Phone Configuration</h3>
+          </div>
+          <div class="form-group">
+            <label>Caller Phone Number (CLI / Caller ID):</label>
+            <input type="tel" id="caller-phone" class="form-control" value="+919848012345">
+            <small style="color: #666;">This caller number will be automatically captured when pressing 'Interested'.</small>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Live IVR Audit Log & State Trace</h3>
+            <button class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="clearLog()">Clear</button>
+          </div>
+          <p style="font-size: 0.85rem; color: #666; margin-bottom: 0.75rem;">
+            Deterministic execution path tracking state transitions, DTMF digits, and Excel database queries.
+          </p>
+          <div id="audit-log-box" style="background: #1A202C; color: #A0AEC0; font-family: monospace; font-size: 0.85rem; padding: 1rem; border-radius: 8px; height: 320px; overflow-y: auto;">
+            [SYSTEM READY] Telephony simulator initialized. Click 'DIAL IVR' to place incoming call.
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    let activeCallId = null;
+    let callActive = false;
+    let callTimerInterval = null;
+    let callSeconds = 0;
+    let audioEnabled = true;
+
+    function logTrace(msg, color='#00E676') {
+      const box = document.getElementById('audit-log-box');
+      const time = new Date().toLocaleTimeString();
+      box.innerHTML += `<div style="margin-bottom: 4px;"><span style="color: #718096;">[${time}]</span> <span style="color: ${color};">${msg}</span></div>`;
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function clearLog() {
+      document.getElementById('audit-log-box').innerHTML = '';
+    }
+
+    function speakPrompt(text) {
+      if (!audioEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      document.getElementById('audio-state').innerText = audioEnabled ? 'Speech ON 🔊' : 'Speech OFF 🔇';
+      if (!audioEnabled && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+
+    async function startCall() {
+      const phone = document.getElementById('caller-phone').value.trim();
+      activeCallId = 'CALL-' + Math.floor(100000 + Math.random() * 900000);
+      callActive = true;
+      callSeconds = 0;
+
+      document.getElementById('dial-btn').disabled = true;
+      document.getElementById('hangup-btn').disabled = false;
+      document.getElementById('call-status-badge').innerHTML = '<span class="led-indicator led-green"></span> CONNECTED (SIMULATED IVR)';
+      document.getElementById('screen-state-tag').innerText = 'CONNECTING...';
+
+      startTimer();
+      logTrace(`Incoming Call from ${phone} (CallId: ${activeCallId})`, '#00E676');
+
+      const api = getApiBaseUrl();
+      try {
+        const res = await fetch(`${api}/ivr/incoming`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            call_id: activeCallId,
+            caller_phone: phone
+          })
+        });
+
+        const data = await res.json();
+        updateScreen(data);
+      } catch (err) {
+        logTrace(`Error connecting call: ${err}`, '#FF1744');
+      }
+    }
+
+    async function pressDTMF(digit) {
+      document.getElementById('last-key-pressed').innerText = digit;
+      if (!callActive) {
+        logTrace(`Key '${digit}' pressed but no call in progress. Click 'DIAL IVR' first.`, '#FFB300');
+        return;
+      }
+
+      logTrace(`Worker pressed DTMF: [ ${digit} ]`, '#64B5F6');
+
+      const api = getApiBaseUrl();
+      try {
+        const res = await fetch(`${api}/ivr/dtmf`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            call_id: activeCallId,
+            digits: digit
+          })
+        });
+
+        const data = await res.json();
+        updateScreen(data);
+      } catch (err) {
+        logTrace(`Error sending DTMF: ${err}`, '#FF1744');
+      }
+    }
+
+    async function simulateTimeout() {
+      if (!callActive) {
+        logTrace(`No active call for timeout simulation.`, '#FFB300');
+        return;
+      }
+      logTrace(`Simulating 6-second timeout (No DTMF digit received)...`, '#FFB300');
+
+      const api = getApiBaseUrl();
+      try {
+        const res = await fetch(`${api}/ivr/dtmf`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            call_id: activeCallId,
+            digits: '',
+            is_timeout: true
+          })
+        });
+
+        const data = await res.json();
+        updateScreen(data);
+      } catch (err) {
+        logTrace(`Error sending timeout: ${err}`, '#FF1744');
+      }
+    }
+
+    function updateScreen(data) {
+      document.getElementById('screen-state-tag').innerText = `STATE: ${data.state}`;
+      document.getElementById('screen-prompt').innerText = data.prompt;
+      
+      logTrace(`IVR Transition -> ${data.state}`, '#81C784');
+      logTrace(`Voice Prompt: "${data.prompt}"`, '#E0E0E0');
+
+      speakPrompt(data.prompt);
+
+      if (data.terminate) {
+        logTrace(`Call terminated by IVR state machine.`, '#FF5252');
+        setTimeout(endCall, 3500);
+      }
+    }
+
+    async function endCall() {
+      if (!callActive) return;
+      callActive = false;
+      stopTimer();
+
+      const api = getApiBaseUrl();
+      if (activeCallId) {
+        try {
+          await fetch(`${api}/ivr/callback`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              call_id: activeCallId,
+              CallStatus: 'completed'
+            })
+          });
+        } catch (e) {}
+      }
+
+      activeCallId = null;
+      document.getElementById('dial-btn').disabled = false;
+      document.getElementById('hangup-btn').disabled = true;
+      document.getElementById('call-status-badge').innerHTML = '<span class="led-indicator led-red"></span> ON HOOK (DISCONNECTED)';
+      document.getElementById('screen-state-tag').innerText = 'CALL ENDED';
+      document.getElementById('screen-prompt').innerText = 'Call disconnected. Press "DIAL IVR" to test again.';
+      document.getElementById('last-key-pressed').innerText = '—';
+      
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      logTrace(`Call ended. On Hook.`, '#FF5252');
+    }
+
+    function startTimer() {
+      stopTimer();
+      callTimerInterval = setInterval(() => {
+        callSeconds++;
+        const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+        const secs = String(callSeconds % 60).padStart(2, '0');
+        document.getElementById('call-timer').innerText = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (callTimerInterval) clearInterval(callTimerInterval);
+      document.getElementById('call-timer').innerText = '00:00';
+    }
+  </script>
+</body>
+</html>

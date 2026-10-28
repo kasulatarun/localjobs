@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LocalJobs — Employer Portal</title>
   <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/config.js"></script>
 </head>
 <body>
 
@@ -220,8 +221,9 @@
         expiry_date: document.getElementById('job-expiry').value
       };
 
+      const api = getApiBaseUrl();
       try {
-        const res = await fetch('/jobs', {
+        const res = await fetch(`${api}/jobs`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -236,7 +238,7 @@
             <div class="alert alert-success">
               <b>✓ Job Created Successfully (${created.JobID})!</b><br>
               Status: <span class="badge badge-pending">Pending Verification</span>.<br>
-              An administrator will verify your posting before it goes live on the 1800 IVR.
+              An administrator will verify your posting before it goes live on the IVR service.
             </div>
           `;
           document.getElementById('post-job-form').reset();
@@ -261,8 +263,9 @@
         location: document.getElementById('reg-loc').value.trim()
       };
 
+      const api = getApiBaseUrl();
       try {
-        const res = await fetch('/employers', {
+        const res = await fetch(`${api}/employers`, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify(payload)
@@ -286,12 +289,13 @@
     }
 
     async function loadAllJobs() {
-      const res = await fetch('/admin/jobs', {
+      const api = getApiBaseUrl();
+      const res = await fetch(`${api}/admin/jobs`, {
         headers: {'X-Admin-Secret': 'localjobs_admin_secure_secret_token_12345'}
       });
       if (!res.ok) {
         // Fallback to public
-        const pubRes = await fetch('/jobs');
+        const pubRes = await fetch(`${api}/jobs`);
         const pubJobs = await pubRes.json();
         renderTable(pubJobs);
         return;

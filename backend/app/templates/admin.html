@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LocalJobs — Administrative Console</title>
   <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/config.js"></script>
 </head>
 <body>
 
@@ -72,7 +73,7 @@
         <h2>Jobs Awaiting Administrator Verification</h2>
       </div>
       <p style="color: #666; margin-bottom: 1rem;">
-        Prevent spam or scam postings. Only verified jobs will be voiced to callers on 1800-LOCAL-JOB.
+        Prevent spam or scam postings. Only verified jobs will be voiced to callers on the voice service.
       </p>
       <div class="table-responsive">
         <table class="data-table">
@@ -202,7 +203,7 @@
     function getAdminSecret() {
       let secret = sessionStorage.getItem('LOCALJOBS_ADMIN_SECRET') || document.getElementById('admin-token-input').value.trim();
       if (!secret) {
-        secret = 'localjobs_admin_secure_secret_token_12345'; // Development fallback default
+        secret = 'localjobs_admin_secure_secret_token_12345';
       }
       return secret;
     }
@@ -215,7 +216,6 @@
       refreshData();
     }
 
-    // Initialize input if stored
     const stored = sessionStorage.getItem('LOCALJOBS_ADMIN_SECRET');
     if (stored) {
       document.getElementById('admin-token-input').value = stored;
@@ -232,63 +232,77 @@
 
     async function refreshData() {
       const secret = getAdminSecret();
+      const api = getApiBaseUrl();
+
       // 1. Fetch Stats & Concurrency
-      const statsRes = await fetch('/admin/stats', {
-        headers: {'X-Admin-Secret': secret}
-      });
-      if (statsRes.ok) {
-        const stats = await statsRes.json();
-        document.getElementById('stat-pending').innerText = stats.pending_jobs;
-        document.getElementById('pending-count-badge').innerText = stats.pending_jobs;
-        document.getElementById('stat-verified').innerText = stats.verified_active_jobs;
-        document.getElementById('stat-apps').innerText = stats.total_applications;
-        
-        if (stats.migration_recommended) {
-          document.getElementById('migration-alert').style.display = 'block';
-          document.getElementById('stat-storage').innerText = 'HIGH LOAD';
-          document.getElementById('stat-storage').style.color = '#C62828';
-        } else {
-          document.getElementById('migration-alert').style.display = 'none';
-          document.getElementById('stat-storage').innerText = 'EXCEL (NORMAL)';
+      try {
+        const statsRes = await fetch(`${api}/admin/stats`, {
+          headers: {'X-Admin-Secret': secret}
+        });
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+          document.getElementById('stat-pending').innerText = stats.pending_jobs;
+          document.getElementById('pending-count-badge').innerText = stats.pending_jobs;
+          document.getElementById('stat-verified').innerText = stats.verified_active_jobs;
+          document.getElementById('stat-apps').innerText = stats.total_applications;
+          
+          if (stats.migration_recommended) {
+            document.getElementById('migration-alert').style.display = 'block';
+            document.getElementById('stat-storage').innerText = 'HIGH LOAD';
+            document.getElementById('stat-storage').style.color = '#C62828';
+          } else {
+            document.getElementById('migration-alert').style.display = 'none';
+            document.getElementById('stat-storage').innerText = 'EXCEL (NORMAL)';
+          }
         }
+      } catch (e) {
+        console.error("Failed to load admin stats:", e);
       }
 
       // 2. Fetch All Jobs
-      const jobsRes = await fetch('/admin/jobs', {
-        headers: {'X-Admin-Secret': secret}
-      });
-      if (jobsRes.ok) {
-        const jobs = await jobsRes.json();
-        renderPendingJobs(jobs.filter(j => j.Verified === 'Pending'));
-        renderAllJobs(jobs);
-      }
+      try {
+        const jobsRes = await fetch(`${api}/admin/jobs`, {
+          headers: {'X-Admin-Secret': secret}
+        });
+        if (jobsRes.ok) {
+          const jobs = await jobsRes.json();
+          renderPendingJobs(jobs.filter(j => j.Verified === 'Pending'));
+          renderAllJobs(jobs);
+        }
+      } catch (e) {}
 
       // 3. Fetch Applications
-      const appsRes = await fetch('/applications', {
-        headers: {'X-Admin-Secret': secret}
-      });
-      if (appsRes.ok) {
-        const apps = await appsRes.json();
-        renderApplications(apps);
-      }
+      try {
+        const appsRes = await fetch(`${api}/applications`, {
+          headers: {'X-Admin-Secret': secret}
+        });
+        if (appsRes.ok) {
+          const apps = await appsRes.json();
+          renderApplications(apps);
+        }
+      } catch (e) {}
 
       // 4. Fetch Employers
-      const empRes = await fetch('/employers', {
-        headers: {'X-Admin-Secret': secret}
-      });
-      if (empRes.ok) {
-        const emps = await empRes.json();
-        renderEmployers(emps);
-      }
+      try {
+        const empRes = await fetch(`${api}/employers`, {
+          headers: {'X-Admin-Secret': secret}
+        });
+        if (empRes.ok) {
+          const emps = await empRes.json();
+          renderEmployers(emps);
+        }
+      } catch (e) {}
 
       // 5. Fetch Workers
-      const wrkRes = await fetch('/admin/workers', {
-        headers: {'X-Admin-Secret': secret}
-      });
-      if (wrkRes.ok) {
-        const wrks = await wrkRes.json();
-        renderWorkers(wrks);
-      }
+      try {
+        const wrkRes = await fetch(`${api}/admin/workers`, {
+          headers: {'X-Admin-Secret': secret}
+        });
+        if (wrkRes.ok) {
+          const wrks = await wrkRes.json();
+          renderWorkers(wrks);
+        }
+      } catch (e) {}
     }
 
     function renderPendingJobs(pending) {
@@ -341,7 +355,7 @@
       tbody.innerHTML = apps.map(a => `
         <tr>
           <td><b>${a.ApplicationID}</b></td>
-          <td><a href="/jobs/${a.JobID}" target="_blank">${a.JobID}</a></td>
+          <td><b>${a.JobID}</b></td>
           <td><b>${a.WorkerPhone}</b></td>
           <td>${a.WorkerID || '—'}</td>
           <td>${a.AppliedAt}</td>
@@ -383,7 +397,8 @@
     }
 
     async function approveJob(jobId) {
-      await fetch(`/jobs/${jobId}/approve`, {
+      const api = getApiBaseUrl();
+      await fetch(`${api}/jobs/${jobId}/approve`, {
         method: 'PUT',
         headers: {'X-Admin-Secret': getAdminSecret()}
       });
@@ -391,7 +406,8 @@
     }
 
     async function rejectJob(jobId) {
-      await fetch(`/jobs/${jobId}/reject`, {
+      const api = getApiBaseUrl();
+      await fetch(`${api}/jobs/${jobId}/reject`, {
         method: 'PUT',
         headers: {'X-Admin-Secret': getAdminSecret()}
       });
@@ -399,7 +415,8 @@
     }
 
     async function closeJob(jobId) {
-      await fetch(`/jobs/${jobId}/close`, {
+      const api = getApiBaseUrl();
+      await fetch(`${api}/jobs/${jobId}/close`, {
         method: 'PUT',
         headers: {
           'X-Admin-Secret': getAdminSecret(),
@@ -410,7 +427,8 @@
     }
 
     async function verifyEmployer(empId) {
-      await fetch(`/employers/${empId}/verify`, {
+      const api = getApiBaseUrl();
+      await fetch(`${api}/employers/${empId}/verify`, {
         method: 'PUT',
         headers: {'X-Admin-Secret': getAdminSecret()}
       });

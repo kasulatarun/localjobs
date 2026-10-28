@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocalJobs — Administrative Console</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/config.js"></script>
+</head>
+<body>
+
+  <header class="app-header" style="background: #0D233A;">
+    <div class="brand">
+      <div class="brand-badge" style="background: #C62828;">ADMIN</div>
+      <div>
+        <div class="brand-title">LocalJobs Command Center</div>
+        <div class="brand-subtitle">Platform Trust, Verification & System Operations</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <input type="password" id="admin-token-input" placeholder="Admin Secret Token" style="padding: 0.35rem 0.6rem; border-radius: 4px; border: 1px solid #718096; background: #2D3748; color: white;" onchange="saveToken()">
+      <button class="btn btn-outline" style="color: white; border-color: #718096; padding: 0.35rem 0.7rem; font-size: 0.85rem;" onclick="saveToken()">Set Key</button>
+    </div>
+    <nav class="nav-links">
+      <a href="/">Worker View</a>
+      <a href="/employer">Employer View</a>
+      <a href="/admin" class="active">Admin Dashboard</a>
+      <a href="/simulator" class="call-banner-btn">📞 Dial IVR</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    
+    <!-- Excel Database Concurrency & Migration Status Banner -->
+    <div id="migration-alert" class="alert alert-warning" style="display: none;">
+      <b>⚠️ Data Storage Concurrency Warning:</b> 
+      The system is currently backed by <code>data/jobs.xlsx</code>. While protected by atomic write locks and backups, 
+      high traffic or record volumes exceeding recommended limits require migrating to <b>PostgreSQL</b> for enterprise concurrency.
+    </div>
+
+    <!-- Stats Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+      <div class="card" style="margin-bottom: 0; text-align: center;">
+        <div style="font-size: 0.85rem; color: #666; font-weight: 700;">PENDING REVIEW</div>
+        <div id="stat-pending" style="font-size: 2.2rem; font-weight: 900; color: #E65100;">0</div>
+      </div>
+      <div class="card" style="margin-bottom: 0; text-align: center;">
+        <div style="font-size: 0.85rem; color: #666; font-weight: 700;">ACTIVE VERIFIED JOBS</div>
+        <div id="stat-verified" style="font-size: 2.2rem; font-weight: 900; color: #2E7D32;">0</div>
+      </div>
+      <div class="card" style="margin-bottom: 0; text-align: center;">
+        <div style="font-size: 0.85rem; color: #666; font-weight: 700;">TOTAL APPLICATIONS</div>
+        <div id="stat-apps" style="font-size: 2.2rem; font-weight: 900; color: #1F497D;">0</div>
+      </div>
+      <div class="card" style="margin-bottom: 0; text-align: center;">
+        <div style="font-size: 0.85rem; color: #666; font-weight: 700;">EXCEL STORAGE HEALTH</div>
+        <div id="stat-storage" style="font-size: 1.2rem; font-weight: 800; color: #2E7D32; margin-top: 0.6rem;">NORMAL</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+      <button class="btn btn-primary" onclick="switchAdminTab('pending')">Pending Job Approvals (<span id="pending-count-badge">0</span>)</button>
+      <button class="btn btn-outline" onclick="switchAdminTab('jobs')">All Jobs Database</button>
+      <button class="btn btn-outline" onclick="switchAdminTab('applications')">Candidate Applications</button>
+      <button class="btn btn-outline" onclick="switchAdminTab('employers')">Employers & KYC</button>
+      <button class="btn btn-outline" onclick="switchAdminTab('workers')">Registered Workers</button>
+    </div>
+
+    <!-- Tab 1: Pending Jobs for Review -->
+    <div id="admin-pending" class="card">
+      <div class="card-header">
+        <h2>Jobs Awaiting Administrator Verification</h2>
+      </div>
+      <p style="color: #666; margin-bottom: 1rem;">
+        Prevent spam or scam postings. Only verified jobs will be voiced to callers on the voice service.
+      </p>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Job ID</th>
+              <th>Category</th>
+              <th>Employer ID</th>
+              <th>Locality</th>
+              <th>Salary</th>
+              <th>Description</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="pending-jobs-tbody">
+            <!-- Loaded by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 2: All Jobs -->
+    <div id="admin-jobs" class="card" style="display: none;">
+      <div class="card-header">
+        <h2>All System Jobs</h2>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Job ID</th>
+              <th>Employer</th>
+              <th>Job Type</th>
+              <th>Locality</th>
+              <th>Salary</th>
+              <th>Status</th>
+              <th>Verification</th>
+              <th>Created</th>
+              <th>Expiry</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="all-jobs-tbody">
+            <!-- Loaded by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 3: Applications -->
+    <div id="admin-applications" class="card" style="display: none;">
+      <div class="card-header">
+        <h2>Worker Applications (Voice & Web Submissions)</h2>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>App ID</th>
+              <th>Job ID</th>
+              <th>Worker Phone</th>
+              <th>Worker ID</th>
+              <th>Timestamp</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="all-apps-tbody">
+            <!-- Loaded by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 4: Employers -->
+    <div id="admin-employers" class="card" style="display: none;">
+      <div class="card-header">
+        <h2>Employer Directory & Verification</h2>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Employer ID</th>
+              <th>Company Name</th>
+              <th>Contact Name</th>
+              <th>Phone</th>
+              <th>Location</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="all-employers-tbody">
+            <!-- Loaded by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 5: Workers -->
+    <div id="admin-workers" class="card" style="display: none;">
+      <div class="card-header">
+        <h2>Registered Local Workers</h2>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Worker ID</th>
+              <th>Phone</th>
+              <th>Language</th>
+              <th>Locality</th>
+              <th>Preferred Job</th>
+              <th>Experience</th>
+              <th>Registered</th>
+            </tr>
+          </thead>
+          <tbody id="all-workers-tbody">
+            <!-- Loaded by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    function getAdminSecret() {
+      let secret = sessionStorage.getItem('LOCALJOBS_ADMIN_SECRET') || document.getElementById('admin-token-input').value.trim();
+      if (!secret) {
+        secret = 'localjobs_admin_secure_secret_token_12345';
+      }
+      return secret;
+    }
+
+    function saveToken() {
+      const val = document.getElementById('admin-token-input').value.trim();
+      if (val) {
+        sessionStorage.setItem('LOCALJOBS_ADMIN_SECRET', val);
+      }
+      refreshData();
+    }
+
+    const stored = sessionStorage.getItem('LOCALJOBS_ADMIN_SECRET');
+    if (stored) {
+      document.getElementById('admin-token-input').value = stored;
+    }
+
+    function switchAdminTab(tab) {
+      document.getElementById('admin-pending').style.display = tab === 'pending' ? 'block' : 'none';
+      document.getElementById('admin-jobs').style.display = tab === 'jobs' ? 'block' : 'none';
+      document.getElementById('admin-applications').style.display = tab === 'applications' ? 'block' : 'none';
+      document.getElementById('admin-employers').style.display = tab === 'employers' ? 'block' : 'none';
+      document.getElementById('admin-workers').style.display = tab === 'workers' ? 'block' : 'none';
+      refreshData();
+    }
+
+    async function refreshData() {
+      const secret = getAdminSecret();
+      const api = getApiBaseUrl();
+
+      // 1. Fetch Stats & Concurrency
+      try {
+        const statsRes = await fetch(`${api}/admin/stats`, {
+          headers: {'X-Admin-Secret': secret}
+        });
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+          document.getElementById('stat-pending').innerText = stats.pending_jobs;
+          document.getElementById('pending-count-badge').innerText = stats.pending_jobs;
+          document.getElementById('stat-verified').innerText = stats.verified_active_jobs;
+          document.getElementById('stat-apps').innerText = stats.total_applications;
+          
+          if (stats.migration_recommended) {
+            document.getElementById('migration-alert').style.display = 'block';
+            document.getElementById('stat-storage').innerText = 'HIGH LOAD';
+            document.getElementById('stat-storage').style.color = '#C62828';
+          } else {
+            document.getElementById('migration-alert').style.display = 'none';
+            document.getElementById('stat-storage').innerText = 'EXCEL (NORMAL)';
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load admin stats:", e);
+      }
+
+      // 2. Fetch All Jobs
+      try {
+        const jobsRes = await fetch(`${api}/admin/jobs`, {
+          headers: {'X-Admin-Secret': secret}
+        });
+        if (jobsRes.ok) {
+          const jobs = await jobsRes.json();
+          renderPendingJobs(jobs.filter(j => j.Verified === 'Pending'));
+          renderAllJobs(jobs);
+        }
+      } catch (e) {}
+
+      // 3. Fetch Applications
+      try {
+        const appsRes = await fetch(`${api}/applications`, {
+          headers: {'X-Admin-Secret': secret}
+        });
+        if (appsRes.ok) {
+          const apps = await appsRes.json();
+          renderApplications(apps);
+        }
+      } catch (e) {}
+
+      // 4. Fetch Employers
+      try {
+        const empRes = await fetch(`${api}/employers`, {
+          headers: {'X-Admin-Secret': secret}
+        });
+        if (empRes.ok) {
+          const emps = await empRes.json();
+          renderEmployers(emps);
+        }
+      } catch (e) {}
+
+      // 5. Fetch Workers
+      try {
+        const wrkRes = await fetch(`${api}/admin/workers`, {
+          headers: {'X-Admin-Secret': secret}
+        });
+        if (wrkRes.ok) {
+          const wrks = await wrkRes.json();
+          renderWorkers(wrks);
+        }
+      } catch (e) {}
+    }
+
+    function renderPendingJobs(pending) {
+      const tbody = document.getElementById('pending-jobs-tbody');
+      if (pending.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #666; padding: 2rem;">✓ All jobs have been reviewed! No pending submissions.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = pending.map(j => `
+        <tr>
+          <td><b>${j.JobID}</b></td>
+          <td>${j.JobType}</td>
+          <td>${j.EmployerID}</td>
+          <td>${j.Locality}</td>
+          <td>₹${j.Salary.toLocaleString()}</td>
+          <td style="max-width: 300px;">${j.Description}</td>
+          <td>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-success" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="approveJob('${j.JobID}')">✓ Approve</button>
+              <button class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="rejectJob('${j.JobID}')">✕ Reject</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderAllJobs(jobs) {
+      const tbody = document.getElementById('all-jobs-tbody');
+      tbody.innerHTML = jobs.map(j => `
+        <tr>
+          <td><b>${j.JobID}</b></td>
+          <td>${j.EmployerID}</td>
+          <td>${j.JobType}</td>
+          <td>${j.Locality}</td>
+          <td>₹${j.Salary.toLocaleString()}</td>
+          <td><span class="badge ${j.Status === 'Active' ? 'badge-verified' : 'badge-closed'}">${j.Status}</span></td>
+          <td><span class="badge ${j.Verified === 'Verified' ? 'badge-verified' : (j.Verified === 'Pending' ? 'badge-pending' : 'badge-rejected')}">${j.Verified}</span></td>
+          <td>${j.CreatedAt}</td>
+          <td>${j.ExpiryDate}</td>
+          <td>
+            ${j.Status === 'Active' ? `<button class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="closeJob('${j.JobID}')">Close</button>` : '—'}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderApplications(apps) {
+      const tbody = document.getElementById('all-apps-tbody');
+      tbody.innerHTML = apps.map(a => `
+        <tr>
+          <td><b>${a.ApplicationID}</b></td>
+          <td><b>${a.JobID}</b></td>
+          <td><b>${a.WorkerPhone}</b></td>
+          <td>${a.WorkerID || '—'}</td>
+          <td>${a.AppliedAt}</td>
+          <td><span class="badge badge-verified">${a.Status}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderEmployers(emps) {
+      const tbody = document.getElementById('all-employers-tbody');
+      tbody.innerHTML = emps.map(e => `
+        <tr>
+          <td><b>${e.EmployerID}</b></td>
+          <td>${e.CompanyName}</td>
+          <td>${e.ContactName}</td>
+          <td>${e.Phone}</td>
+          <td>${e.Location}</td>
+          <td><span class="badge ${e.Verified === 'Verified' ? 'badge-verified' : 'badge-pending'}">${e.Verified}</span></td>
+          <td>
+            ${e.Verified !== 'Verified' ? `<button class="btn btn-success" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="verifyEmployer('${e.EmployerID}')">Approve KYC</button>` : 'Verified'}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function renderWorkers(wrks) {
+      const tbody = document.getElementById('all-workers-tbody');
+      tbody.innerHTML = wrks.map(w => `
+        <tr>
+          <td><b>${w.WorkerID}</b></td>
+          <td>${w.Phone}</td>
+          <td>${w.Language.toUpperCase()}</td>
+          <td>${w.Locality}</td>
+          <td>${w.PreferredJobType}</td>
+          <td>${w.Experience}</td>
+          <td>${w.CreatedAt}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function approveJob(jobId) {
+      const api = getApiBaseUrl();
+      await fetch(`${api}/jobs/${jobId}/approve`, {
+        method: 'PUT',
+        headers: {'X-Admin-Secret': getAdminSecret()}
+      });
+      refreshData();
+    }
+
+    async function rejectJob(jobId) {
+      const api = getApiBaseUrl();
+      await fetch(`${api}/jobs/${jobId}/reject`, {
+        method: 'PUT',
+        headers: {'X-Admin-Secret': getAdminSecret()}
+      });
+      refreshData();
+    }
+
+    async function closeJob(jobId) {
+      const api = getApiBaseUrl();
+      await fetch(`${api}/jobs/${jobId}/close`, {
+        method: 'PUT',
+        headers: {
+          'X-Admin-Secret': getAdminSecret(),
+          'X-Employer-Secret': 'localjobs_employer_secure_secret_token_67890'
+        }
+      });
+      refreshData();
+    }
+
+    async function verifyEmployer(empId) {
+      const api = getApiBaseUrl();
+      await fetch(`${api}/employers/${empId}/verify`, {
+        method: 'PUT',
+        headers: {'X-Admin-Secret': getAdminSecret()}
+      });
+      refreshData();
+    }
+
+    refreshData();
+  </script>
+</body>
+</html>
