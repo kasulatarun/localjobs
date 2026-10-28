@@ -1,0 +1,71 @@
+# Secrets & Credentials
+.env
+.env.*
+!.env.example
+!.env.production.example
+*secret*
+*credential*
+*.key
+*.token
+credit_budget.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+
+# Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Asset paths
+Assets/AssetStoreTools*
+Assets/Plugins/Editor/JetBrains*
+
+# Visual Studio / Rider / VS Code cache
+.vs/
+.idea/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.opendb
+*.VC.db
+.vscode/
+
+# OS generated
+.DS_Store
+Thumbs.db
+desktop.ini
