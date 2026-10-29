@@ -38,6 +38,18 @@ function setCustomApiUrl(url) {
   window.location.reload();
 }
 
+function promptApiUrl() {
+  const current = getApiBaseUrl() || "(Same Origin)";
+  const entered = prompt(
+    "Configure Backend API Base URL:\n(e.g., https://localjobs-backend.onrender.com or leave empty for same-origin)",
+    current === "(Same Origin)" ? "" : current
+  );
+  if (entered !== null) {
+    setCustomApiUrl(entered === "(Same Origin)" ? "" : entered);
+  }
+}
+window.promptApiUrl = promptApiUrl;
+
 async function loadTelephonyBanner() {
   const api = getApiBaseUrl();
   try {
