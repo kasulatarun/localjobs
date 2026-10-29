@@ -141,3 +141,24 @@ def test_whatsapp_meta_cloud_api_webhook_format():
     assert data["status"] == "success"
     assert data["to_phone"] == "+919848953136"
     assert "Welcome to LocalJobs" in data["reply"]
+
+def test_whatsapp_autoresponder_for_wa_format():
+    # Exactly what AutoResponder for WA sends in their screenshot
+    autoresponder_payload = {
+        "appPackageName": "tkstudio.autoresponderforwa",
+        "messengerPackageName": "com.whatsapp",
+        "query": {
+            "sender": "+919848953136",
+            "message": "Hi",
+            "isGroup": False,
+            "ruleId": 1
+        }
+    }
+    res = client.post("/whatsapp/webhook", json=autoresponder_payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert "replies" in data
+    assert isinstance(data["replies"], list)
+    assert len(data["replies"]) == 1
+    assert "Welcome to LocalJobs" in data["replies"][0]["message"]

@@ -67,12 +67,18 @@ async def handle_whatsapp_webhook(request: Request):
                         or ""
                     )
 
-    # 2. Check Twilio WhatsApp structure
+    # 2. Check AutoResponder for WA structure: {"query": {"sender": "...", "message": "..."}}
+    elif "query" in body and isinstance(body.get("query"), dict):
+        q = body["query"]
+        from_phone = q.get("sender", from_phone)
+        incoming_text = q.get("message", "")
+
+    # 3. Check Twilio WhatsApp structure
     elif "From" in body and "Body" in body:
         from_phone = body.get("From", "").replace("whatsapp:", "")
         incoming_text = body.get("Body", "")
 
-    # 3. Direct/Simulated JSON payload: {"from_phone": "+91...", "message": "1"}
+    # 4. Direct/Simulated JSON payload: {"from_phone": "+91...", "message": "1"}
     elif "from_phone" in body or "message" in body:
         from_phone = body.get("from_phone", from_phone)
         incoming_text = body.get("message", "")
@@ -85,7 +91,11 @@ async def handle_whatsapp_webhook(request: Request):
     return {
         "status": "success",
         "to_phone": from_phone,
-        "reply": reply_text
+        "reply": reply_text,
+        # AutoResponder for WA native response format:
+        "replies": [
+            {"message": reply_text}
+        ]
     }
 
 @router.post("/simulate", response_model=SimulateMessageResponse)
