@@ -5,8 +5,7 @@
 
 // If deployed on static hosts like Cloudflare Pages, set default backend URL:
 window.LOCALJOBS_CONFIG = {
-  // In development/same-host, empty string uses relative paths
-  DEFAULT_API_BASE: "",
+  DEFAULT_API_BASE: "https://localjobs.onrender.com",
   TELEPHONY_MODE: "MOCK"
 };
 
@@ -15,18 +14,14 @@ function getApiBaseUrl() {
   if (custom && custom.trim()) {
     return custom.trim().replace(/\/+$/, "");
   }
-  // Check if Vite or script injected VITE_API_BASE_URL
-  if (window.VITE_API_BASE_URL) {
-    return window.VITE_API_BASE_URL.replace(/\/+$/, "");
+  // When running locally on localhost or 127.0.0.1, use relative paths
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return "";
   }
-  if (window.LOCALJOBS_API_BASE_URL) {
-    return window.LOCALJOBS_API_BASE_URL.replace(/\/+$/, "");
-  }
-  // Fallback: if served directly via file:// or different port, default to backend standard port
   if (window.location.protocol === "file:") {
     return "http://127.0.0.1:8000";
   }
-  return window.LOCALJOBS_CONFIG.DEFAULT_API_BASE || "";
+  return window.LOCALJOBS_CONFIG.DEFAULT_API_BASE || "https://localjobs.onrender.com";
 }
 
 function setCustomApiUrl(url) {
