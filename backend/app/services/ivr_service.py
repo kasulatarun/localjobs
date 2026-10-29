@@ -38,9 +38,19 @@ class CallSession:
         self.updated_at: datetime = datetime.now()
 
 class IVRService:
-    def __init__(self):
+    def __init__(self, match_svc=None, app_svc=None):
+        self._custom_match_svc = match_svc
+        self._custom_app_svc = app_svc
         self._sessions: Dict[str, CallSession] = {}
         self._lock = threading.RLock()
+
+    @property
+    def match_svc(self):
+        return self._custom_match_svc or matching_service
+
+    @property
+    def app_svc(self):
+        return self._custom_app_svc or application_service
 
     def get_or_create_session(self, call_id: str, caller_phone: str) -> CallSession:
         with self._lock:
@@ -214,7 +224,7 @@ class IVRService:
             session.retry_count = 0
             
             # Execute deterministic search
-            matches = matching_service.match_jobs(
+            matches = self.match_svc.match_jobs(
                 category=session.selected_category,
                 locality=session.selected_locality,
                 limit=3,
@@ -269,7 +279,7 @@ class IVRService:
 
         # 1 -> Worker interested
         if digit == "1":
-            app, is_duplicate = application_service.apply_for_job(
+            app, is_duplicate = self.app_svc.apply_for_job(
                 worker_phone=session.caller_phone,
                 job_id=current_job.job_id,
                 language=session.language

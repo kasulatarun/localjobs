@@ -13,14 +13,52 @@ EXCEL_PATH = Path("data/jobs.xlsx")
 ADMIN_SECRET = "localjobs_admin_secure_secret_token_12345"
 EMPLOYER_SECRET = "localjobs_employer_secure_secret_token_67890"
 
-# Initialize fresh seed database for clean repeatable verification
-create_initial_workbook(EXCEL_PATH)
+from backend.app.config import config
 
-client = httpx.Client(base_url=BASE_URL, timeout=10.0)
+# Initialize fresh seed database for clean repeatable verification
+if config.is_postgres:
+    from backend.app.repositories.postgres_repository import init_db_postgres, Base, get_engine
+    from backend.app.repositories.import_excel_to_postgres import import_excel_to_postgres
+    create_initial_workbook(EXCEL_PATH)
+    eng = get_engine()
+    Base.metadata.drop_all(bind=eng)
+    Base.metadata.create_all(bind=eng)
+    import_excel_to_postgres(excel_path=EXCEL_PATH, engine=eng)
+else:
+    create_initial_workbook(EXCEL_PATH)
+
+client = None
+try:
+    _raw_client = httpx.Client(base_url=BASE_URL, timeout=2.0)
+    res = _raw_client.get("/health")
+    if res.status_code == 200:
+        client = _raw_client
+        print(f"Connected to live HTTP server at {BASE_URL}")
+    else:
+        raise ConnectionError("Live server non-200")
+except Exception:
+    print(f"No running server at {BASE_URL}. Using in-process FastAPI TestClient...")
+    from fastapi.testclient import TestClient
+    from backend.app.main import app
+    client = TestClient(app)
 
 results = {}
 
 def get_excel_applications():
+    if config.is_postgres:
+        from backend.app.repositories.postgres_repository import session_scope, ApplicationModel
+        with session_scope() as session:
+            return [
+                {
+                    "ApplicationID": a.application_id,
+                    "WorkerID": a.worker_id,
+                    "WorkerPhone": a.worker_phone,
+                    "JobID": a.job_id,
+                    "AppliedAt": a.applied_at,
+                    "Status": a.status
+                }
+                for a in session.query(ApplicationModel).all()
+            ]
     wb = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
     ws = wb["Applications"]
     apps = []
@@ -32,6 +70,31 @@ def get_excel_applications():
     return apps
 
 def get_excel_job(job_id):
+    if config.is_postgres:
+        from backend.app.repositories.postgres_repository import session_scope, JobModel
+        with session_scope() as session:
+            for r in session.query(JobModel).all():
+                if r.job_id.upper() == job_id.upper():
+                    return {
+                        "JobID": r.job_id,
+                        "EmployerID": r.employer_id,
+                        "JobType": r.job_type,
+                        "Location": r.location,
+                        "Locality": r.locality,
+                        "District": r.district,
+                        "State": r.state,
+                        "Salary": r.salary,
+                        "SalaryType": r.salary_type,
+                        "Hours": r.hours,
+                        "RequiredExperience": r.required_experience,
+                        "Vacancies": r.vacancies,
+                        "Description": r.description,
+                        "Status": r.status,
+                        "Verified": r.verified,
+                        "CreatedAt": r.created_at,
+                        "ExpiryDate": r.expiry_date
+                    }
+            return None
     wb = openpyxl.load_workbook(EXCEL_PATH, data_only=True)
     ws = wb["Jobs"]
     headers = [cell.value for cell in ws[1]]
@@ -50,42 +113,42 @@ print("=" * 60)
 # -------------------------------------------------------------
 # PORTAL CHECKS (TESTS 1 to 5)
 # -------------------------------------------------------------
-print("\n--- [TEST 1] Worker Portal ---")
+print("\n--- [TEST 1/16] Worker Portal ---")
 rw = client.get("/worker")
 assert rw.status_code == 200 and len(rw.text) > 1000
 results["Worker Portal (/ & /worker)"] = "PASS"
 print("Worker portal loaded successfully.")
 
-print("\n--- [TEST 2] Employer Dashboard ---")
+print("\n--- [TEST 2/16] Employer Dashboard ---")
 remp = client.get("/employer")
 assert remp.status_code == 200 and len(remp.text) > 1000
 results["Employer Dashboard (/employer)"] = "PASS"
 print("Employer dashboard loaded successfully.")
 
-print("\n--- [TEST 3] Admin Console ---")
+print("\n--- [TEST 3/16] Admin Console ---")
 radm = client.get("/admin")
 assert radm.status_code == 200 and len(radm.text) > 1000
 results["Admin Console (/admin)"] = "PASS"
 print("Admin console loaded successfully.")
 
-print("\n--- [TEST 4] Telephone Simulator ---")
+print("\n--- [TEST 4/16] Telephone Simulator ---")
 rsim = client.get("/simulator")
 assert rsim.status_code == 200 and len(rsim.text) > 1000
 results["Telephone Simulator (/simulator)"] = "PASS"
 print("Telephone simulator loaded successfully.")
 
-print("\n--- [TEST 5] Excel Direct Read / Write ---")
+print("\n--- [TEST 5/16] Direct Storage Read / Write ---")
 rhe = client.get("/health")
 assert rhe.status_code == 200
 hdata = rhe.json()
-assert hdata["excel_storage"]["status"] == "connected"
+assert hdata.get("excel_storage", {}).get("status") == "connected" or hdata.get("storage", {}).get("status") == "connected"
 results["Excel Direct Read / Write"] = "PASS"
-print("Excel storage verified connected.")
+print(f"Storage verified connected (backend: {hdata.get('storage', {}).get('backend', 'excel')}).")
 
 # -------------------------------------------------------------
-# JOURNEY 1: TELUGU WORKER JOURNEY (TEST 6)
+# JOURNEYS & EDGE CASES (TESTS 6 to 16)
 # -------------------------------------------------------------
-print("\n--- [TEST 6] Telugu Worker Journey ---")
+print("\n--- [TEST 6/16] Telugu Worker Journey ---")
 call_id_1 = "MANUAL-CALL-TE-01"
 phone_1 = "+919848077001"
 
@@ -126,17 +189,17 @@ print("5. Application Response:", d5["state"], "| AppID:", d5.get("application_i
 assert d5["state"] == "APPLICATION_CREATED"
 assert d5["is_duplicate"] is False
 
-# Verify in Excel Applications sheet directly
+# Verify in storage
 apps = get_excel_applications()
 matching_apps = [a for a in apps if a.get("WorkerPhone") == phone_1 and a.get("JobID") == "JOB-1001"]
-print("6. Direct Excel Verification: Found in Applications sheet ->", matching_apps)
-assert len(matching_apps) >= 1, "Application was NOT found in data/jobs.xlsx"
+print("6. Direct Storage Verification: Found in Applications ->", matching_apps)
+assert len(matching_apps) >= 1, "Application was NOT found in database"
 results["Telugu Worker Journey"] = "PASS"
 
 # -------------------------------------------------------------
-# JOURNEY 2: HINDI WORKER JOURNEY
+# TEST 7: HINDI WORKER JOURNEY
 # -------------------------------------------------------------
-print("\n--- [TEST 2] Hindi Worker Journey ---")
+print("\n--- [TEST 7/16] Hindi Worker Journey ---")
 call_id_2 = "MANUAL-CALL-HI-01"
 phone_2 = "+919848077002"
 
@@ -163,13 +226,13 @@ print("4. Application Confirmed:", rh5["application_id"])
 
 apps = get_excel_applications()
 matching_apps = [a for a in apps if a.get("WorkerPhone") == phone_2 and a.get("JobID") == "JOB-1001"]
-assert len(matching_apps) >= 1, "Hindi application was NOT found in data/jobs.xlsx"
+assert len(matching_apps) >= 1, "Hindi application was NOT found in database"
 results["Hindi Worker Journey"] = "PASS"
 
 # -------------------------------------------------------------
-# JOURNEY 3: ENGLISH WORKER JOURNEY
+# TEST 8: ENGLISH WORKER JOURNEY
 # -------------------------------------------------------------
-print("\n--- [TEST 3] English Worker Journey ---")
+print("\n--- [TEST 8/16] English Worker Journey ---")
 call_id_3 = "MANUAL-CALL-EN-01"
 phone_3 = "+919848077003"
 
@@ -196,13 +259,13 @@ print("4. Application Confirmed:", re5["application_id"])
 
 apps = get_excel_applications()
 matching_apps = [a for a in apps if a.get("WorkerPhone") == phone_3 and a.get("JobID") == "JOB-1001"]
-assert len(matching_apps) >= 1, "English application was NOT found in data/jobs.xlsx"
+assert len(matching_apps) >= 1, "English application was NOT found in database"
 results["English Worker Journey"] = "PASS"
 
 # -------------------------------------------------------------
-# TEST 4: INVALID KEYPAD INPUT
+# TEST 9: INVALID KEYPAD INPUT
 # -------------------------------------------------------------
-print("\n--- [TEST 4] Invalid Keypad Input ---")
+print("\n--- [TEST 9/16] Invalid Keypad Input ---")
 call_id_4 = "MANUAL-CALL-INV-01"
 client.post("/ivr/incoming", json={"call_id": call_id_4, "caller_phone": "+919848077004"})
 rinv = client.post("/ivr/dtmf", json={"call_id": call_id_4, "digits": "7"}).json()
@@ -212,9 +275,9 @@ assert "Invalid choice" in rinv["prompt"] or "తప్పుడు" in rinv["pr
 results["Invalid Keypad Input"] = "PASS"
 
 # -------------------------------------------------------------
-# TEST 5: TIMEOUT HANDLING & TERMINATION
+# TEST 10: TIMEOUT HANDLING & TERMINATION
 # -------------------------------------------------------------
-print("\n--- [TEST 5] Timeout Handling & Max Retries ---")
+print("\n--- [TEST 10/16] Timeout Handling & Max Retries ---")
 call_id_5 = "MANUAL-CALL-TIMEOUT-01"
 client.post("/ivr/incoming", json={"call_id": call_id_5, "caller_phone": "+919848077005"})
 
@@ -234,9 +297,9 @@ assert rt_last["terminate"] is True
 results["Timeout Handling"] = "PASS"
 
 # -------------------------------------------------------------
-# TEST 6: NO AVAILABLE JOBS
+# TEST 11: NO AVAILABLE JOBS
 # -------------------------------------------------------------
-print("\n--- [TEST 6] No Available Jobs ---")
+print("\n--- [TEST 11/16] No Available Jobs ---")
 call_id_6 = "MANUAL-CALL-NOJOB-01"
 client.post("/ivr/incoming", json={"call_id": call_id_6, "caller_phone": "+919848077006"})
 client.post("/ivr/dtmf", json={"call_id": call_id_6, "digits": "3"}) # English
@@ -253,9 +316,9 @@ print("Returned to Menu:", r_back["state"])
 results["No Available Jobs"] = "PASS"
 
 # -------------------------------------------------------------
-# TEST 7: DUPLICATE APPLICATION
+# TEST 12: DUPLICATE APPLICATION
 # -------------------------------------------------------------
-print("\n--- [TEST 7] Duplicate Application ---")
+print("\n--- [TEST 12/16] Duplicate Application ---")
 # Phone 1 already applied for JOB-1001 in Test 1
 call_id_7 = "MANUAL-CALL-DUP-01"
 client.post("/ivr/incoming", json={"call_id": call_id_7, "caller_phone": phone_1})
@@ -268,20 +331,20 @@ assert r_dup["state"] == "APPLICATION_CREATED"
 assert r_dup["is_duplicate"] is True
 assert "ఇప్పటికే" in r_dup["prompt"] or "already applied" in r_dup["prompt"] or "पहले ही" in r_dup["prompt"]
 
-# Count applications in Excel for this phone
+# Count applications in storage for this phone
 apps = get_excel_applications()
 phone1_apps = [a for a in apps if a.get("WorkerPhone") == phone_1 and a.get("JobID") == "JOB-1001"]
-print(f"Total applications for {phone_1} for JOB-1001 in Excel:", len(phone1_apps))
-assert len(phone1_apps) == 1, "Duplicate row was erroneously inserted into Excel!"
+print(f"Total applications for {phone_1} for JOB-1001 in database:", len(phone1_apps))
+assert len(phone1_apps) == 1, "Duplicate row was erroneously inserted into database!"
 results["Duplicate Application"] = "PASS"
 
 # -------------------------------------------------------------
-# TEST 8: CLOSED JOB EXCLUSION
+# TEST 13: CLOSED JOB EXCLUSION
 # -------------------------------------------------------------
-print("\n--- [TEST 8] Closed Job Exclusion ---")
+print("\n--- [TEST 13/16] Closed Job Exclusion ---")
 # JOB-1008 is Driver in Uppal with Status="Closed"
 closed_job = get_excel_job("JOB-1008")
-print("JOB-1008 in Excel:", closed_job["JobID"], "| Status:", closed_job["Status"])
+print("JOB-1008 in DB:", closed_job["JobID"], "| Status:", closed_job["Status"])
 assert closed_job["Status"] == "Closed"
 
 pub_jobs = client.get("/jobs?job_type=Driver&locality=Uppal").json()
@@ -291,12 +354,12 @@ assert "JOB-1008" not in pub_job_ids, "Closed job JOB-1008 was returned in publi
 results["Closed Job Exclusion"] = "PASS"
 
 # -------------------------------------------------------------
-# TEST 9: EXPIRED JOB EXCLUSION
+# TEST 14: EXPIRED JOB EXCLUSION
 # -------------------------------------------------------------
-print("\n--- [TEST 9] Expired Job Exclusion ---")
+print("\n--- [TEST 14/16] Expired Job Exclusion ---")
 # JOB-1009 has ExpiryDate="2026-09-01"
 expired_job = get_excel_job("JOB-1009")
-print("JOB-1009 in Excel:", expired_job["JobID"], "| Expiry:", expired_job["ExpiryDate"])
+print("JOB-1009 in DB:", expired_job["JobID"], "| Expiry:", expired_job["ExpiryDate"])
 
 pub_const_jobs = client.get("/jobs?job_type=Construction&locality=Uppal").json()
 pub_const_ids = [j["JobID"] for j in pub_const_jobs]
@@ -305,12 +368,12 @@ assert "JOB-1009" not in pub_const_ids, "Expired job JOB-1009 was returned in pu
 results["Expired Job Exclusion"] = "PASS"
 
 # -------------------------------------------------------------
-# TEST 10: UNVERIFIED EMPLOYER EXCLUSION
+# TEST 15: UNVERIFIED EMPLOYER EXCLUSION
 # -------------------------------------------------------------
-print("\n--- [TEST 10] Unverified Employer Exclusion ---")
+print("\n--- [TEST 15/16] Unverified Employer Exclusion ---")
 # JOB-1007 is from EMP-106 (Pending verification)
 pending_job = get_excel_job("JOB-1007")
-print("JOB-1007 in Excel:", pending_job["JobID"], "| Employer:", pending_job["EmployerID"], "| Verified:", pending_job["Verified"])
+print("JOB-1007 in DB:", pending_job["JobID"], "| Employer:", pending_job["EmployerID"], "| Verified:", pending_job["Verified"])
 assert pending_job["Verified"] == "Pending"
 
 all_pub_jobs = client.get("/jobs").json()
@@ -319,9 +382,9 @@ assert "JOB-1007" not in all_pub_ids, "Unverified job JOB-1007 was exposed publi
 results["Unverified Employer Exclusion"] = "PASS"
 
 # -------------------------------------------------------------
-# TEST 11: ADMIN APPROVAL / REJECTION
+# TEST 16: ADMIN APPROVAL / REJECTION
 # -------------------------------------------------------------
-print("\n--- [TEST 11] Admin Approval / Rejection Flow ---")
+print("\n--- [TEST 16/16] Admin Approval / Rejection Flow ---")
 # 1. Employer submits new job
 new_job_payload = {
     "employer_id": "EMP-101",
@@ -393,7 +456,7 @@ for test_name, status in results.items():
 
 print("=" * 60)
 if all_pass:
-    print("ALL 11 VERIFICATION JOURNEYS & EDGE CASES PASSED")
+    print(f"ALL 16 VERIFICATION JOURNEYS & EDGE CASES PASSED ({len(results)}/16)")
 else:
     print("FAILURES DETECTED")
 print("=" * 60)

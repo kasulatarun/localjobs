@@ -65,6 +65,12 @@ Assets/Plugins/Editor/JetBrains*
 *.VC.db
 .vscode/
 
+# Database temporary files
+*.db
+*.sqlite
+data/*.db
+data/*.tmp.xlsx
+
 # OS generated
 .DS_Store
 Thumbs.db

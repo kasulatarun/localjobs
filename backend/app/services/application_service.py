@@ -1,12 +1,16 @@
 from typing import List, Optional, Tuple
 from backend.app.models.applications import Application, ApplicationCreate
 from backend.app.models.workers import WorkerCreate
-from backend.app.repositories.excel_repository import excel_repo
+from backend.app.repositories import repo as active_repo
 from backend.app.security.validation import normalize_phone, mask_phone
 
 class ApplicationService:
-    def __init__(self, repo=excel_repo):
-        self.repo = repo
+    def __init__(self, repo=None):
+        self._custom_repo = repo
+
+    @property
+    def repo(self):
+        return self._custom_repo if self._custom_repo is not None else active_repo
 
     def apply_for_job(self, worker_phone: str, job_id: str, language: str = "te") -> Tuple[Optional[Application], bool]:
         """

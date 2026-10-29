@@ -9,10 +9,68 @@ class TelephonyMode(str, Enum):
     PRODUCTION = "PRODUCTION"
 
 class AppConfig:
-    APP_ENV: str = os.getenv("APP_ENV", "development")
-    DEBUG: bool = os.getenv("DEBUG", "false").lower() in ("true", "1")
-    HOST: str = os.getenv("HOST", "0.0.0.0")
-    PORT: int = int(os.getenv("PORT", "8000"))
+    def __init__(self):
+        self._app_env = None
+        self._data_backend = None
+        self._database_url = None
+
+    @property
+    def APP_ENV(self) -> str:
+        if self._app_env is not None:
+            return self._app_env
+        return os.getenv("APP_ENV", "development")
+
+    @APP_ENV.setter
+    def APP_ENV(self, value: str):
+        self._app_env = value
+
+    @property
+    def DATA_BACKEND(self) -> str:
+        if self._data_backend is not None:
+            return self._data_backend
+        env_backend = os.getenv("DATA_BACKEND")
+        if env_backend:
+            return env_backend.lower()
+        return "postgres" if self.APP_ENV == "production" else "excel"
+
+    @DATA_BACKEND.setter
+    def DATA_BACKEND(self, value: str):
+        self._data_backend = value
+
+    @property
+    def DATABASE_URL(self) -> str:
+        if self._database_url is not None:
+            return self._database_url
+        return os.getenv("DATABASE_URL", "")
+
+    @DATABASE_URL.setter
+    def DATABASE_URL(self, value: str):
+        self._database_url = value
+
+    @property
+    def DEBUG(self) -> bool:
+        return os.getenv("DEBUG", "false").lower() in ("true", "1")
+
+    @property
+    def HOST(self) -> str:
+        return os.getenv("HOST", "0.0.0.0")
+
+    @property
+    def PORT(self) -> int:
+        return int(os.getenv("PORT", "8000"))
+
+    @property
+    def is_postgres(self) -> bool:
+        return self.DATA_BACKEND.lower() in ("postgres", "postgresql")
+
+    @property
+    def normalized_database_url(self) -> str:
+        url = self.DATABASE_URL.strip()
+        if not url:
+            return ""
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        return url
     
     # CORS
     ALLOWED_ORIGINS: List[str] = [

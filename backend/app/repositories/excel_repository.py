@@ -648,6 +648,11 @@ class UnifiedExcelRepository(ExcelBase):
         self.applications.file_path = path
         self.categories.file_path = path
 
+    def check_connection(self) -> Tuple[bool, Optional[str]]:
+        if self.file_path.exists():
+            return True, None
+        return False, f"Excel storage file {self.file_path} not found"
+
     def get_storage_stats(self) -> Dict[str, Any]:
         with EXCEL_LOCK:
             wb = self._load_workbook(read_only=True)

@@ -94,10 +94,49 @@ Excel is not an ACID SQL database. To ensure safe MVP usage:
 
 ---
 
-## 5. Migration Path to PostgreSQL
+## 5. Dual-Backend Storage Architecture (Excel & PostgreSQL)
 
-Repository interfaces (`IJobRepository`, `IEmployerRepository`, etc.) abstract all storage interactions.
-To migrate to PostgreSQL:
-1. Implement `PostgresJobRepository(IJobRepository)` using SQLAlchemy / asyncpg.
-2. Replace repository bindings in service initializers.
-3. No business logic or IVR state machines require modification.
+Repository interfaces (`IJobRepository`, `IEmployerRepository`, `IWorkerRepository`, `IApplicationRepository`, `ICategoryRepository`) abstract all storage operations.
+
+The application implements a dual-backend architecture selected via environment variables:
+
+```text
+                  ┌──────────────────────────────┐
+                  │       RepositoryProxy        │
+                  │   (backend/app/repositories) │
+                  └──────────────┬───────────────┘
+                                 │
+           ┌─────────────────────┴─────────────────────┐
+           │                                           │
+           ▼                                           ▼
+┌──────────────────────────────┐            ┌──────────────────────────────┐
+│    UnifiedExcelRepository    │            │  UnifiedPostgresRepository   │
+│   (DATA_BACKEND=excel)       │            │  (DATA_BACKEND=postgres)     │
+│                              │            │                              │
+│ - Zero setup local dev       │            │ - Production persistence     │
+│ - Threading RLock & atomic   │            │ - Supabase / Neon / Render   │
+│ - data/jobs.xlsx storage     │            │ - Foreign keys & ACID rules  │
+│ - Import/Export hub          │            │ - Unique constraints         │
+└──────────────────────────────┘            └──────────────────────────────┘
+```
+
+1. **Local Development Mode**:
+   ```bash
+   APP_ENV=development
+   DATA_BACKEND=excel
+   ```
+   Uses `data/jobs.xlsx` with atomic backup file replacement. Zero database setup or server required.
+
+2. **Production Cloud Mode**:
+   ```bash
+   APP_ENV=production
+   DATA_BACKEND=postgres
+   DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres
+   ```
+   Uses PostgreSQL (Supabase or Neon free tiers) to eliminate Render's ephemeral filesystem data loss. All candidate applications, employer postings, and worker registrations persist reliably across restarts.
+
+3. **Data Migration & Seeding CLI**:
+   ```bash
+   python -m backend.app.repositories.import_excel_to_postgres --excel data/jobs.xlsx
+   ```
+   Imports seed data from Excel into PostgreSQL idempotently.

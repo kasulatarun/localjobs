@@ -1,10 +1,14 @@
 from typing import List, Optional
 from backend.app.models.jobs import Job, JobCreate, JobUpdate
-from backend.app.repositories.excel_repository import excel_repo
+from backend.app.repositories import repo as active_repo
 
 class JobService:
-    def __init__(self, repo=excel_repo):
-        self.repo = repo
+    def __init__(self, repo=None):
+        self._custom_repo = repo
+
+    @property
+    def repo(self):
+        return self._custom_repo if self._custom_repo is not None else active_repo
 
     def get_public_jobs(self, job_type: Optional[str] = None, locality: Optional[str] = None) -> List[Job]:
         """Returns only verified, active, non-expired jobs."""

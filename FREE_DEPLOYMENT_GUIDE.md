@@ -118,10 +118,57 @@ To achieve a 100% genuine, free public deployment with HTTPS and zero credit car
 
 ---
 
-## 6. Storage Limitations on Free Hosts & Migration Path
+## 6. Persistent Cloud Storage: Free Managed PostgreSQL Setup (Supabase / Neon)
 
-On free hosting providers (Render Free, Koyeb, Hugging Face):
-- The filesystem is **ephemeral**. When the free container goes to sleep after 15 minutes of inactivity or redeploys, new candidate applications written to `data/jobs.xlsx` during that session reset to the original Git state.
-- **Migration to PostgreSQL (100% Free)**:
-  - Create a free database on **Supabase** ([supabase.com](https://supabase.com)) or **Neon** ([neon.tech](https://neon.tech)) — both offer generous free PostgreSQL instances forever with zero credit card.
-  - Thanks to the `IJobRepository` / `IApplicationRepository` abstractions in `excel_repository.py`, swapping to PostgreSQL requires only plugging in a database connection string in `.env`.
+On free hosting providers like Render Free, the local filesystem is **ephemeral** (restarting the dyno wipes runtime changes to local files). 
+
+LocalJobs solves this with an active repository architecture:
+* **Local Development**: `DATA_BACKEND=excel` uses `data/jobs.xlsx` (zero setup, no database daemon required).
+* **Public Production Deployment**: `DATA_BACKEND=postgres` uses a free managed PostgreSQL database with ACID transactions and persistent storage.
+
+---
+
+### Step-by-Step: Setting Up ₹0 Free PostgreSQL
+
+#### Option A: Supabase (Recommended)
+1. Go to [supabase.com](https://supabase.com) and create a free account (no credit card needed).
+2. Click **New Project** -> Name it `localjobs-db` -> Set a database password -> Choose **Singapore** or **Mumbai** (South Asia).
+3. Under **Project Settings** -> **Database** -> **Connection string**, copy the **URI** connection string:
+   ```text
+   postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres
+   ```
+4. (Optional) Run `backend/app/repositories/postgres_schema.sql` directly in Supabase's **SQL Editor** if you wish to inspect tables manually. (The FastAPI backend also auto-creates all tables on startup via `init_db_postgres()`).
+
+#### Option B: Neon Serverless PostgreSQL
+1. Go to [neon.tech](https://neon.tech) and create a free account.
+2. Create project `localjobs` -> Select region **Asia Pacific (Singapore)**.
+3. Copy the pooled connection string:
+   ```text
+   postgresql://[user]:[password]@[endpoint].neon.tech/neondb?sslmode=require
+   ```
+
+---
+
+### Importing Seed Data to PostgreSQL
+
+Run the idempotent import script locally or against your remote cloud database:
+```bash
+# Import into remote Supabase/Neon database:
+python -m backend.app.repositories.import_excel_to_postgres --excel data/jobs.xlsx --db-url "postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres"
+```
+
+---
+
+### Render Environment Configuration for Production
+
+In your Render service dashboard under **Environment Variables**, configure:
+```text
+APP_ENV=production
+DATA_BACKEND=postgres
+DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres
+ADMIN_SECRET=<your-chosen-admin-token>
+EMPLOYER_SECRET=<your-chosen-employer-token>
+ALLOWED_ORIGINS=*
+```
+
+Once configured, candidate applications, employer registrations, and job postings remain persistent across all dyno restarts and sleeps.

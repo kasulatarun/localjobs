@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Dict, Any
 from fastapi import FastAPI, Depends, Request, Response
@@ -9,7 +10,7 @@ import httpx
 
 from backend.app.config import config, TelephonyMode
 from backend.app.api import jobs, categories, workers, applications, employers, ivr, llm
-from backend.app.repositories.excel_repository import excel_repo
+from backend.app.repositories import repo, excel_repo
 from backend.app.services.job_service import job_service
 from backend.app.telephony.exotel import exotel_provider
 from backend.app.security.validation import verify_admin
@@ -18,10 +19,22 @@ APP_DIR = Path(__file__).parent
 TEMPLATES_DIR = APP_DIR / "templates"
 STATIC_DIR = APP_DIR / "static"
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Safe table initialization when running in PostgreSQL mode."""
+    if config.is_postgres:
+        try:
+            from backend.app.repositories.postgres_repository import init_db_postgres
+            init_db_postgres()
+        except Exception as e:
+            print(f"[!] Warning: PostgreSQL table initialization on startup: {e}")
+    yield
+
 app = FastAPI(
     title="LocalJobs API",
     description="Voice-first local employment platform connecting workers via DTMF IVR and web dashboards",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS Configuration
@@ -51,8 +64,8 @@ app.include_router(llm.router)
 
 @app.get("/health", tags=["System"])
 async def health_check():
-    """System health check verifying Excel repository, Ollama LLM connectivity, and Telephony mode."""
-    storage_stats = excel_repo.get_storage_stats()
+    """System health check verifying active storage repository, Ollama LLM connectivity, and Telephony mode."""
+    storage_stats = repo.get_storage_stats()
     
     ollama_url = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
     ollama_ok = False
@@ -70,8 +83,16 @@ async def health_check():
         "service": "LocalJobs",
         "version": "1.0.0",
         "environment": config.APP_ENV,
+        "storage": {
+            "status": "connected",
+            "backend": config.DATA_BACKEND,
+            "total_records": storage_stats.get("total_records", 0),
+            "concurrency_risk": storage_stats.get("concurrency_risk", "NORMAL"),
+            "migration_recommended": storage_stats.get("migration_recommended", False)
+        },
         "excel_storage": {
             "status": "connected",
+            "backend": config.DATA_BACKEND,
             "total_records": storage_stats.get("total_records", 0),
             "concurrency_risk": storage_stats.get("concurrency_risk", "NORMAL"),
             "migration_recommended": storage_stats.get("migration_recommended", False)
@@ -90,9 +111,9 @@ async def health_check():
 @app.get("/ready", tags=["System"])
 def readiness_check():
     """Readiness probe for container orchestrators (Render / Koyeb / K8s)."""
-    # Verify Excel file is accessible
-    if not excel_repo.file_path.exists():
-        return JSONResponse(status_code=503, content={"ready": False, "reason": "Storage file not accessible"})
+    is_ready, err = repo.check_connection()
+    if not is_ready:
+        return JSONResponse(status_code=503, content={"ready": False, "reason": f"Storage not ready: {err}"})
     return {"ready": True, "service": "LocalJobs"}
 
 @app.get("/telephony/status", tags=["System"])
@@ -138,16 +159,16 @@ def get_admin_stats(_: bool = Depends(verify_admin)):
     all_jobs = job_service.get_all_jobs_admin()
     pending = len([j for j in all_jobs if j.verified == "Pending"])
     verified_active = len([j for j in all_jobs if j.verified == "Verified" and j.status == "Active"])
-    all_apps = excel_repo.get_all_applications()
-    storage_stats = excel_repo.get_storage_stats()
+    all_apps = repo.get_all_applications()
+    storage_stats = repo.get_storage_stats()
 
     return {
         "total_jobs": len(all_jobs),
         "pending_jobs": pending,
         "verified_active_jobs": verified_active,
         "total_applications": len(all_apps),
-        "total_employers": len(excel_repo.get_all_employers()),
-        "total_workers": len(excel_repo.get_all_workers()),
+        "total_employers": len(repo.get_all_employers()),
+        "total_workers": len(repo.get_all_workers()),
         "migration_recommended": storage_stats.get("migration_recommended", False),
         "concurrency_risk": storage_stats.get("concurrency_risk", "NORMAL")
     }
@@ -160,7 +181,7 @@ def get_all_jobs_for_admin(_: bool = Depends(verify_admin)):
 @app.get("/admin/workers", tags=["Admin"])
 def get_all_workers_for_admin(_: bool = Depends(verify_admin)):
     """Admin endpoint to view all registered workers."""
-    return [w.model_dump(by_alias=True) for w in excel_repo.get_all_workers()]
+    return [w.model_dump(by_alias=True) for w in repo.get_all_workers()]
 
 if __name__ == "__main__":
     import uvicorn

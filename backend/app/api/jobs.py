@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Depends, Query, status
 from backend.app.models.jobs import Job, JobCreate, JobUpdate
 from backend.app.services.job_service import job_service
-from backend.app.repositories.excel_repository import excel_repo
+from backend.app.repositories import repo
 from backend.app.security.validation import verify_admin, verify_employer
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
@@ -29,7 +29,7 @@ def create_job(job_in: JobCreate, _: bool = Depends(verify_employer)):
     Starts as 'Pending' verification. Requires Admin review before publishing.
     """
     # Verify employer exists
-    emp = excel_repo.get_employer_by_id(job_in.employer_id)
+    emp = repo.get_employer_by_id(job_in.employer_id)
     if not emp:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

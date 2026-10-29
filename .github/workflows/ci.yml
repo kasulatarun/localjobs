@@ -30,9 +30,13 @@ jobs:
         run: |
           python backend/app/repositories/init_db.py
 
-      - name: Run Automated Pytest Suite (24/24 Tests)
+      - name: Run Automated Pytest Suite
         run: |
           python -m pytest backend/tests -v
+
+      - name: Verify Excel to PostgreSQL Migration CLI
+        run: |
+          python -m backend.app.repositories.import_excel_to_postgres --excel data/jobs.xlsx
 
       - name: Start Live Background Server for End-to-End Verification
         run: |

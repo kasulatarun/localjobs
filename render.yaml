@@ -2,12 +2,16 @@ services:
   - type: web
     name: localjobs-backend
     env: python
-    buildCommand: pip install -r requirements.txt && python backend/app/repositories/init_db.py
+    buildCommand: pip install -r requirements.txt
     startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
     plan: free
     envVars:
       - key: APP_ENV
         value: production
+      - key: DATA_BACKEND
+        value: postgres
+      - key: DATABASE_URL
+        sync: false # Paste your free Supabase or Neon PostgreSQL connection string here
       - key: ALLOWED_ORIGINS
         value: "*"
       - key: ADMIN_SECRET
