@@ -82,7 +82,10 @@ class AppConfig:
         if origin.strip()
     ]
     
-    # Telephony
+    # Telephony & WhatsApp
+    DEMO_PHONE: str = os.getenv("DEMO_PHONE", "+919848953136")
+    WHATSAPP_PHONE: str = os.getenv("WHATSAPP_PHONE", "+919848953136")
+    WHATSAPP_VERIFY_TOKEN: str = os.getenv("WHATSAPP_VERIFY_TOKEN", "localjobs_whatsapp_verify_token")
     EXOTEL_ACCOUNT_SID: str = os.getenv("EXOTEL_ACCOUNT_SID", "")
     EXOTEL_API_KEY: str = os.getenv("EXOTEL_API_KEY", "")
     EXOTEL_API_TOKEN: str = os.getenv("EXOTEL_API_TOKEN", "")
@@ -122,9 +125,10 @@ class AppConfig:
         else:
             return {
                 "mode": "MOCK",
-                "badge": "SIMULATED 1800 (₹0 DEMO MODE)",
-                "phone_display": "1800-DEMO-SIM (Mock IVR)",
-                "description": "Zero-budget public demo mode. No carrier toll-free number is purchased yet. Use our interactive web/CLI dialer to test real DTMF voice IVR.",
+                "badge": "DEMO HELPLINE & WHATSAPP",
+                "phone_display": "+91 98489 53136",
+                "raw_phone": cls.DEMO_PHONE,
+                "description": "Interactive demo helpline & automated WhatsApp assistant for +919848953136.",
                 "is_mock": True
             }
 

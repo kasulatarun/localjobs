@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LocalJobs — IVR Voice Simulator</title>
+  <title>LocalJobs — Telephony & WhatsApp Simulator</title>
   <link rel="stylesheet" href="/static/style.css">
   <script src="/static/config.js"></script>
   <style>
@@ -16,6 +16,153 @@
     }
     .led-green { background: #00E676; box-shadow: 0 0 8px #00E676; }
     .led-red { background: #FF1744; }
+
+    /* Tabs */
+    .sim-tab-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid #E2E8F0;
+      padding-bottom: 0.5rem;
+    }
+    .sim-tab-btn {
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      background: #EDF2F7;
+      color: #4A5568;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+    .sim-tab-btn.active {
+      background: #1F497D;
+      color: white;
+    }
+    .sim-tab-btn.whatsapp-active {
+      background: #075E54;
+      color: white;
+    }
+
+    /* WhatsApp Simulator Styles */
+    .wa-device {
+      max-width: 460px;
+      margin: 0 auto;
+      background: #ECE5DD;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 640px;
+      border: 3px solid #1A202C;
+    }
+    .wa-header {
+      background: #075E54;
+      color: white;
+      padding: 0.85rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .wa-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #25D366;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: white;
+      margin-right: 0.75rem;
+    }
+    .wa-chat-body {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      background-image: radial-gradient(#d4cbbe 10%, transparent 11%);
+      background-size: 16px 16px;
+    }
+    .wa-msg {
+      max-width: 82%;
+      padding: 0.6rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      position: relative;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    .wa-msg-in {
+      align-self: flex-start;
+      background: white;
+      color: #1A202C;
+      border-top-left-radius: 0;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
+    .wa-msg-out {
+      align-self: flex-end;
+      background: #DCF8C6;
+      color: #1A202C;
+      border-top-right-radius: 0;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
+    .wa-msg-time {
+      font-size: 0.7rem;
+      color: #888;
+      text-align: right;
+      margin-top: 4px;
+    }
+    .wa-footer {
+      background: #F0F2F5;
+      padding: 0.6rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .wa-input {
+      flex: 1;
+      padding: 0.6rem 0.85rem;
+      border: 1px solid #CBD5E0;
+      border-radius: 20px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .wa-send-btn {
+      background: #075E54;
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+    .quick-chip {
+      background: #E2E8F0;
+      border: 1px solid #CBD5E0;
+      padding: 0.35rem 0.65rem;
+      border-radius: 14px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .quick-chip:hover {
+      background: #CBD5E0;
+    }
   </style>
 </head>
 <body>
@@ -24,8 +171,8 @@
     <div class="brand">
       <div class="brand-badge" style="background: #00E676; color: #1A202C;">SIMULATOR</div>
       <div>
-        <div class="brand-title">LocalJobs IVR Telephone Simulator</div>
-        <div class="brand-subtitle">DTMF Testing Engine & Live Voice Synthesizer</div>
+        <div class="brand-title">LocalJobs Helpline & WhatsApp Simulator</div>
+        <div class="brand-subtitle">Voice DTMF & Multi-Lingual WhatsApp Auto-Assistant (+91 98489 53136)</div>
       </div>
     </div>
     <nav class="nav-links">
@@ -41,112 +188,240 @@
 
   <main class="container">
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 2rem;">
-      
-      <!-- Virtual Telephone Device -->
-      <div>
-        <div class="phone-wrapper">
-          
-          <!-- Screen -->
-          <div class="phone-screen">
-            <div>
-              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
-                <span id="call-status-badge" style="font-size: 0.8rem; font-weight: 700; color: #718096;">
-                  <span class="led-indicator led-red"></span> ON HOOK (DISCONNECTED)
-                </span>
-                <span id="call-timer" style="font-size: 0.8rem; font-weight: 700; color: #718096;">00:00</span>
+    <!-- Mode Selector Tabs -->
+    <div class="sim-tab-bar">
+      <button id="tab-btn-ivr" class="sim-tab-btn active" onclick="switchTab('ivr')">
+        📞 Voice Keypad Helpline (IVR)
+      </button>
+      <button id="tab-btn-wa" class="sim-tab-btn" onclick="switchTab('wa')">
+        💬 WhatsApp Assistant (+91 98489 53136)
+      </button>
+    </div>
+
+    <!-- ================= TAB 1: IVR SIMULATOR ================= -->
+    <div id="tab-ivr" style="display: block;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 2rem;">
+        
+        <!-- Virtual Telephone Device -->
+        <div>
+          <div class="phone-wrapper">
+            
+            <!-- Screen -->
+            <div class="phone-screen">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0; padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
+                  <span id="call-status-badge" style="font-size: 0.8rem; font-weight: 700; color: #718096;">
+                    <span class="led-indicator led-red"></span> ON HOOK (DISCONNECTED)
+                  </span>
+                  <span id="call-timer" style="font-size: 0.8rem; font-weight: 700; color: #718096;">00:00</span>
+                </div>
+                
+                <div id="screen-state-tag" style="font-size: 0.75rem; text-transform: uppercase; color: #E65100; font-weight: 800; margin-bottom: 0.25rem;">
+                  STATE: IDLE
+                </div>
+                <div id="screen-prompt" style="font-size: 1rem; font-weight: 600; color: #1A202C; min-height: 90px; line-height: 1.4;">
+                  Press "DIAL IVR" to start simulated telephone call to demo helpline (+91 98489 53136).
+                </div>
               </div>
+
+              <!-- Last Key Indicator -->
+              <div style="background: #F7FAFC; padding: 0.4rem 0.6rem; border-radius: 6px; display: flex; justify-content: space-between; font-size: 0.8rem; color: #4A5568;">
+                <span>Last Key Pressed: <b id="last-key-pressed" style="color: #E65100;">—</b></span>
+                <span>Audio: <b id="audio-state">Speech ON 🔊</b></span>
+              </div>
+            </div>
+
+            <!-- Keypad 3x4 -->
+            <div class="phone-keypad">
+              <button class="key-btn" onclick="pressDTMF('1')">1 <span class="sub">TE / .</span></button>
+              <button class="key-btn" onclick="pressDTMF('2')">2 <span class="sub">HI / ABC</span></button>
+              <button class="key-btn" onclick="pressDTMF('3')">3 <span class="sub">EN / DEF</span></button>
               
-              <div id="screen-state-tag" style="font-size: 0.75rem; text-transform: uppercase; color: #E65100; font-weight: 800; margin-bottom: 0.25rem;">
-                STATE: IDLE
-              </div>
-              <div id="screen-prompt" style="font-size: 1rem; font-weight: 600; color: #1A202C; min-height: 90px; line-height: 1.4;">
-                Press "DIAL IVR" to start simulated telephone call.
-              </div>
+              <button class="key-btn" onclick="pressDTMF('4')">4 <span class="sub">GHI</span></button>
+              <button class="key-btn" onclick="pressDTMF('5')">5 <span class="sub">JKL</span></button>
+              <button class="key-btn" onclick="pressDTMF('6')">6 <span class="sub">MNO</span></button>
+              
+              <button class="key-btn" onclick="pressDTMF('7')">7 <span class="sub">PQRS</span></button>
+              <button class="key-btn" onclick="pressDTMF('8')">8 <span class="sub">TUV</span></button>
+              <button class="key-btn" onclick="pressDTMF('9')">9 <span class="sub">MENU</span></button>
+              
+              <button class="key-btn" onclick="pressDTMF('*')">*</button>
+              <button class="key-btn" onclick="pressDTMF('0')">0</button>
+              <button class="key-btn" onclick="pressDTMF('#')">#</button>
             </div>
 
-            <!-- Last Key Indicator -->
-            <div style="background: #F7FAFC; padding: 0.4rem 0.6rem; border-radius: 6px; display: flex; justify-content: space-between; font-size: 0.8rem; color: #4A5568;">
-              <span>Last Key Pressed: <b id="last-key-pressed" style="color: #E65100;">—</b></span>
-              <span>Audio: <b id="audio-state">Speech ON 🔊</b></span>
+            <!-- Call / End Action Buttons -->
+            <div class="call-control-grid">
+              <button id="dial-btn" class="btn btn-success btn-lg" onclick="startCall()">
+                📞 DIAL IVR
+              </button>
+              <button id="hangup-btn" class="btn btn-danger btn-lg" onclick="endCall()" disabled>
+                📴 HANG UP
+              </button>
             </div>
-          </div>
 
-          <!-- Keypad 3x4 -->
-          <div class="phone-keypad">
-            <button class="key-btn" onclick="pressDTMF('1')">1 <span class="sub">TE / .</span></button>
-            <button class="key-btn" onclick="pressDTMF('2')">2 <span class="sub">HI / ABC</span></button>
-            <button class="key-btn" onclick="pressDTMF('3')">3 <span class="sub">EN / DEF</span></button>
-            
-            <button class="key-btn" onclick="pressDTMF('4')">4 <span class="sub">GHI</span></button>
-            <button class="key-btn" onclick="pressDTMF('5')">5 <span class="sub">JKL</span></button>
-            <button class="key-btn" onclick="pressDTMF('6')">6 <span class="sub">MNO</span></button>
-            
-            <button class="key-btn" onclick="pressDTMF('7')">7 <span class="sub">PQRS</span></button>
-            <button class="key-btn" onclick="pressDTMF('8')">8 <span class="sub">TUV</span></button>
-            <button class="key-btn" onclick="pressDTMF('9')">9 <span class="sub">MENU</span></button>
-            
-            <button class="key-btn" onclick="pressDTMF('*')">*</button>
-            <button class="key-btn" onclick="pressDTMF('0')">0</button>
-            <button class="key-btn" onclick="pressDTMF('#')">#</button>
-          </div>
+            <!-- Special Test Controls -->
+            <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+              <button class="btn btn-outline" style="flex: 1; color: white; border-color: #718096; font-size: 0.85rem;" onclick="simulateTimeout()">
+                ⏱️ Simulate Timeout (No Input)
+              </button>
+              <button class="btn btn-outline" style="color: white; border-color: #718096; font-size: 0.85rem;" onclick="toggleAudio()">
+                🔊 Mute/Voice
+              </button>
+            </div>
 
-          <!-- Call / End Action Buttons -->
-          <div class="call-control-grid">
-            <button id="dial-btn" class="btn btn-success btn-lg" onclick="startCall()">
-              📞 DIAL IVR
-            </button>
-            <button id="hangup-btn" class="btn btn-danger btn-lg" onclick="endCall()" disabled>
-              📴 HANG UP
-            </button>
-          </div>
-
-          <!-- Special Test Controls -->
-          <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-            <button class="btn btn-outline" style="flex: 1; color: white; border-color: #718096; font-size: 0.85rem;" onclick="simulateTimeout()">
-              ⏱️ Simulate Timeout (No Input)
-            </button>
-            <button class="btn btn-outline" style="color: white; border-color: #718096; font-size: 0.85rem;" onclick="toggleAudio()">
-              🔊 Mute/Voice
-            </button>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Call Settings & State Machine Audit Trace -->
-      <div>
-        <div class="card">
-          <div class="card-header">
-            <h3>Caller Phone Configuration</h3>
-          </div>
-          <div class="form-group">
-            <label>Caller Phone Number (CLI / Caller ID):</label>
-            <input type="tel" id="caller-phone" class="form-control" value="+919848012345">
-            <small style="color: #666;">This caller number will be automatically captured when pressing 'Interested'.</small>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h3>Live IVR Audit Log & State Trace</h3>
-            <button class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="clearLog()">Clear</button>
+        <!-- Call Settings & Audit Log -->
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Demo Phone & Helpline Configuration</h3>
+            </div>
+            <div class="form-group">
+              <label>Worker Caller Phone Number (CLI / Caller ID):</label>
+              <input type="tel" id="caller-phone" class="form-control" value="+919848953136">
+              <small style="color: #666;">Configured demo number: <b>+919848953136</b>. Captured when worker selects a job.</small>
+            </div>
           </div>
-          <p style="font-size: 0.85rem; color: #666; margin-bottom: 0.75rem;">
-            Deterministic execution path tracking state transitions, DTMF digits, and Excel database queries.
-          </p>
-          <div id="audit-log-box" style="background: #1A202C; color: #A0AEC0; font-family: monospace; font-size: 0.85rem; padding: 1rem; border-radius: 8px; height: 320px; overflow-y: auto;">
-            [SYSTEM READY] Telephony simulator initialized. Click 'DIAL IVR' to place incoming call.
+
+          <div class="card">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <h3>Live IVR Audit Log & State Trace</h3>
+              <button class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" onclick="clearLog()">Clear</button>
+            </div>
+            <p style="font-size: 0.85rem; color: #666; margin-bottom: 0.75rem;">
+              Deterministic execution path tracking state transitions, DTMF digits, and database queries.
+            </p>
+            <div id="audit-log-box" style="background: #1A202C; color: #A0AEC0; font-family: monospace; font-size: 0.85rem; padding: 1rem; border-radius: 8px; height: 320px; overflow-y: auto;">
+              [SYSTEM READY] Telephony simulator initialized for helpline +91 98489 53136. Click 'DIAL IVR' to place call.
+            </div>
           </div>
         </div>
 
       </div>
+    </div>
 
+    <!-- ================= TAB 2: WHATSAPP SIMULATOR ================= -->
+    <div id="tab-wa" style="display: none;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 2rem;">
+        
+        <!-- Virtual WhatsApp Messenger Phone -->
+        <div>
+          <div class="wa-device">
+            
+            <!-- WhatsApp Top Bar -->
+            <div class="wa-header">
+              <div style="display: flex; align-items: center;">
+                <div class="wa-avatar">LJ</div>
+                <div>
+                  <div style="font-weight: 700; font-size: 1rem;">LocalJobs Bot</div>
+                  <div style="font-size: 0.75rem; color: #A7F3D0; display: flex; align-items: center; gap: 4px;">
+                    <span style="width: 7px; height: 7px; background: #00E676; border-radius: 50%; display: inline-block;"></span>
+                    Online • +91 98489 53136
+                  </div>
+                </div>
+              </div>
+              <button onclick="resetWhatsAppChat()" style="background: rgba(255,255,255,0.2); color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">
+                🔄 Reset
+              </button>
+            </div>
+
+            <!-- WhatsApp Message Bubble Scroll View -->
+            <div id="wa-chat-body" class="wa-chat-body">
+              <div class="wa-msg wa-msg-in">
+                🙏 *Welcome to LocalJobs!*
+భారత్ లోకల్ ఉద్యోగ సేవా కేంద్రం
+
+దయచేసి మీ భాషను ఎంచుకోండి / भाषा चुनें / Choose Language:
+1️⃣ తెలుగు (Telugu)
+2️⃣ हिंदी (Hindi)
+3️⃣ English
+
+_Reply with 1, 2, or 3_
+                <div class="wa-msg-time">Just now</div>
+              </div>
+            </div>
+
+            <!-- Quick Action Response Chips -->
+            <div style="background: #F0F2F5; padding: 0.4rem 0.6rem; display: flex; gap: 0.4rem; overflow-x: auto; border-top: 1px solid #E2E8F0;">
+              <span class="quick-chip" onclick="sendQuickMessage('Hi')">👋 Hi / హాయ్</span>
+              <span class="quick-chip" onclick="sendQuickMessage('1')">1️⃣ Telugu / Driver / Apply</span>
+              <span class="quick-chip" onclick="sendQuickMessage('2')">2️⃣ Hindi</span>
+              <span class="quick-chip" onclick="sendQuickMessage('3')">3️⃣ English</span>
+              <span class="quick-chip" onclick="sendQuickMessage('5')">5️⃣ Any Area</span>
+              <span class="quick-chip" onclick="sendQuickMessage('9')">9️⃣ Another Job</span>
+            </div>
+
+            <!-- WhatsApp Input Bar -->
+            <div class="wa-footer">
+              <input type="text" id="wa-input" class="wa-input" placeholder="Type message (1, 2, Hi...)" onkeydown="if(event.key==='Enter') sendWhatsAppMessage()">
+              <button class="wa-send-btn" onclick="sendWhatsAppMessage()">➤</button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- WhatsApp Info & Explanation -->
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Multi-Lingual WhatsApp Auto-Assistant</h3>
+            </div>
+            <p style="font-size: 0.95rem; color: #4A5568; line-height: 1.6;">
+              Workers or job seekers who prefer WhatsApp can simply send a message to <b>+91 98489 53136</b>. The system automatically responds with an interactive menu in their preferred language:
+            </p>
+            <ul style="margin-left: 1.25rem; font-size: 0.9rem; color: #2D3748; line-height: 1.8;">
+              <li><b>తెలుగు (Telugu):</b> పూర్తి స్థానిక భాషా మద్దతు &amp; ఉద్యోగ వివరాలు.</li>
+              <li><b>हिंदी (Hindi):</b> भाषा चयन, काम की सूची एवं सीधा आवेदन।</li>
+              <li><b>English:</b> Plain English walkthrough and one-tap application.</li>
+              <li><b>Duplicate Prevention:</b> Automatically alerts applicant if already registered.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Meta Cloud API / Twilio Webhook Specs</h3>
+            </div>
+            <div style="font-size: 0.85rem; color: #4A5568;">
+              <p>For live production connectivity, configure this webhook in Meta WhatsApp Business Platform:</p>
+              <div style="background: #1A202C; color: #00E676; padding: 0.75rem; border-radius: 6px; font-family: monospace; margin: 0.5rem 0;">
+                GET / POST &nbsp; https://YOUR-RENDER-URL.onrender.com/whatsapp/webhook
+              </div>
+              <p style="margin-top: 0.5rem;"><b>Verify Token:</b> <code>localjobs_whatsapp_verify_token</code></p>
+              <p style="margin-top: 0.5rem;"><b>Demo Phone Number:</b> <code>+91 98489 53136</code></p>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
 
   </main>
 
   <script>
+    // Tab Switching
+    function switchTab(mode) {
+      const tabIvr = document.getElementById('tab-ivr');
+      const tabWa = document.getElementById('tab-wa');
+      const btnIvr = document.getElementById('tab-btn-ivr');
+      const btnWa = document.getElementById('tab-btn-wa');
+
+      if (mode === 'wa') {
+        tabIvr.style.display = 'none';
+        tabWa.style.display = 'block';
+        btnIvr.className = 'sim-tab-btn';
+        btnWa.className = 'sim-tab-btn whatsapp-active';
+      } else {
+        tabIvr.style.display = 'block';
+        tabWa.style.display = 'none';
+        btnIvr.className = 'sim-tab-btn active';
+        btnWa.className = 'sim-tab-btn';
+      }
+    }
+
+    // ================= IVR CODE =================
     let activeCallId = null;
     let callActive = false;
     let callTimerInterval = null;
@@ -155,13 +430,15 @@
 
     function logTrace(msg, color='#00E676') {
       const box = document.getElementById('audit-log-box');
+      if (!box) return;
       const time = new Date().toLocaleTimeString();
       box.innerHTML += `<div style="margin-bottom: 4px;"><span style="color: #718096;">[${time}]</span> <span style="color: ${color};">${msg}</span></div>`;
       box.scrollTop = box.scrollHeight;
     }
 
     function clearLog() {
-      document.getElementById('audit-log-box').innerHTML = '';
+      const box = document.getElementById('audit-log-box');
+      if (box) box.innerHTML = '';
     }
 
     function speakPrompt(text) {
@@ -181,7 +458,7 @@
     }
 
     async function startCall() {
-      const phone = document.getElementById('caller-phone').value.trim();
+      const phone = document.getElementById('caller-phone').value.trim() || "+919848953136";
       activeCallId = 'CALL-' + Math.floor(100000 + Math.random() * 900000);
       callActive = true;
       callSeconds = 0;
@@ -192,7 +469,7 @@
       document.getElementById('screen-state-tag').innerText = 'CONNECTING...';
 
       startTimer();
-      logTrace(`Incoming Call from ${phone} (CallId: ${activeCallId})`, '#00E676');
+      logTrace(`Incoming Call from ${phone} to +919848953136 (CallId: ${activeCallId})`, '#00E676');
 
       const api = getApiBaseUrl();
       try {
@@ -324,6 +601,75 @@
     function stopTimer() {
       if (callTimerInterval) clearInterval(callTimerInterval);
       document.getElementById('call-timer').innerText = '00:00';
+    }
+
+    // ================= WHATSAPP CODE =================
+    const DEMO_PHONE = "+919848953136";
+
+    function appendWhatsAppBubble(text, isOut=false) {
+      const chat = document.getElementById('wa-chat-body');
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `wa-msg ${isOut ? 'wa-msg-out' : 'wa-msg-in'}`;
+      msgDiv.innerHTML = `${escapeHtml(text)}<div class="wa-msg-time">${time}</div>`;
+      chat.appendChild(msgDiv);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return (str || '')
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function sendQuickMessage(text) {
+      document.getElementById('wa-input').value = text;
+      sendWhatsAppMessage();
+    }
+
+    async function sendWhatsAppMessage() {
+      const input = document.getElementById('wa-input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      appendWhatsAppBubble(text, true);
+
+      const api = getApiBaseUrl();
+      try {
+        const res = await fetch(`${api}/whatsapp/simulate`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            from_phone: DEMO_PHONE,
+            message: text
+          })
+        });
+
+        if (!res.ok) throw new Error("Server error " + res.status);
+        const data = await res.json();
+        appendWhatsAppBubble(data.reply, false);
+      } catch (err) {
+        appendWhatsAppBubble("⚠️ Network error communicating with WhatsApp backend: " + err.message, false);
+      }
+    }
+
+    async function resetWhatsAppChat() {
+      const api = getApiBaseUrl();
+      try {
+        await fetch(`${api}/whatsapp/reset?phone=${encodeURIComponent(DEMO_PHONE)}`, { method: 'POST' });
+        const chat = document.getElementById('wa-chat-body');
+        chat.innerHTML = '';
+        sendQuickMessage('Hi');
+      } catch (err) {
+        alert("Failed to reset WhatsApp session");
+      }
+    }
+
+    if (window.location.hash === '#wa' || localStorage.getItem('sim_default_tab') === 'wa') {
+      localStorage.removeItem('sim_default_tab');
+      switchTab('wa');
     }
   </script>
 </body>

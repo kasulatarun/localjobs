@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import httpx
 
 from backend.app.config import config, TelephonyMode
-from backend.app.api import jobs, categories, workers, applications, employers, ivr, llm
+from backend.app.api import jobs, categories, workers, applications, employers, ivr, llm, whatsapp
 from backend.app.repositories import repo, excel_repo
 from backend.app.services.job_service import job_service
 from backend.app.telephony.exotel import exotel_provider
@@ -59,6 +59,7 @@ app.include_router(applications.router)
 app.include_router(employers.router)
 app.include_router(ivr.router)
 app.include_router(llm.router)
+app.include_router(whatsapp.router)
 
 # --- Health & Readiness Probes ---
 

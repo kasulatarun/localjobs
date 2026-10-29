@@ -49,23 +49,29 @@
       </p>
 
       <!-- Number Display -->
-      <div style="background: white; color: #1F497D; display: inline-flex; align-items: center; gap: 1rem; padding: 0.75rem 1.5rem; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+      <div style="background: white; color: #1F497D; display: inline-flex; align-items: center; gap: 1rem; padding: 0.75rem 1.5rem; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); flex-wrap: wrap; justify-content: center;">
         <span style="font-size: 1.8rem;">📞</span>
         <div style="text-align: left;">
-          <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #E65100;">Voice Helpline</div>
+          <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #E65100;">Voice Helpline & WhatsApp</div>
           <div id="telephony-phone-display" style="font-size: 1.5rem; font-weight: 900; letter-spacing: 1px;">
-            1800-DEMO-SIM (Mock IVR)
+            +91 98489 53136
           </div>
         </div>
+        <span style="background: #25D366; color: white; font-size: 0.8rem; font-weight: 800; padding: 0.25rem 0.65rem; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px;">
+          💬 WhatsApp Active
+        </span>
       </div>
 
       <div id="telephony-banner-note" style="margin-top: 1rem; font-size: 0.85rem; color: #FFE082;">
-        ℹ️ <b>Zero-Budget Public Demo:</b> No telecom carrier toll-free number is purchased yet. Click below to launch the live voice simulator with real DTMF keypad.
+        ℹ️ <b>Zero-Budget Public Demo:</b> Dial or chat with <b>+91 98489 53136</b>. Supports voice DTMF and automated multi-lingual WhatsApp assistance (Telugu, Hindi, English).
       </div>
 
-      <div style="margin-top: 1.25rem;">
+      <div style="margin-top: 1.25rem; display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
         <a href="/simulator" class="btn btn-accent btn-lg" style="box-shadow: 0 4px 12px rgba(230, 81, 0, 0.4);">
-          🔊 Launch Free Voice Call Simulator (Keypad 1-2-3)
+          🔊 Voice Call Simulator (Keypad 1-2-3)
+        </a>
+        <a href="/simulator#wa" onclick="localStorage.setItem('sim_default_tab', 'wa')" class="btn btn-success btn-lg" style="box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);">
+          💬 WhatsApp Chat Simulator
         </a>
       </div>
     </div>
