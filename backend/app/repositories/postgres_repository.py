@@ -17,7 +17,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Session
 
-from backend.app.config import config
+from backend.app.config import config, normalize_postgres_url
 from backend.app.models.jobs import Job, JobCreate, JobUpdate
 from backend.app.models.employers import Employer, EmployerCreate, EmployerUpdate
 from backend.app.models.workers import Worker, WorkerCreate
@@ -126,9 +126,10 @@ _global_engine = None
 def get_engine(db_url: Optional[str] = None):
     global _global_engine
     if db_url:
-        if db_url.startswith("sqlite"):
-            return create_engine(db_url, connect_args={"check_same_thread": False})
-        return create_engine(db_url, pool_pre_ping=True)
+        normalized = normalize_postgres_url(db_url)
+        if normalized.startswith("sqlite"):
+            return create_engine(normalized, connect_args={"check_same_thread": False})
+        return create_engine(normalized, pool_pre_ping=True)
 
     if _global_engine is None:
         url = config.normalized_database_url

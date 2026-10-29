@@ -8,6 +8,26 @@ class TelephonyMode(str, Enum):
     TRIAL = "TRIAL"
     PRODUCTION = "PRODUCTION"
 
+def normalize_postgres_url(raw_url: str) -> str:
+    """Normalizes PostgreSQL connection URLs to the available Python driver (psycopg 3 or psycopg2)."""
+    url = (raw_url or "").strip()
+    if not url:
+        return ""
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    
+    if url.startswith("postgresql://"):
+        try:
+            import psycopg
+            return url
+        except ImportError:
+            try:
+                import psycopg2
+                return url.replace("postgresql://", "postgresql+psycopg2://", 1)
+            except ImportError:
+                return url
+    return url
+
 class AppConfig:
     def __init__(self):
         self._app_env = None
@@ -65,12 +85,7 @@ class AppConfig:
 
     @property
     def normalized_database_url(self) -> str:
-        url = self.DATABASE_URL.strip()
-        if not url:
-            return ""
-        if url.startswith("postgres://"):
-            url = url.replace("postgres://", "postgresql://", 1)
-        return url
+        return normalize_postgres_url(self.DATABASE_URL)
     
     # CORS
     ALLOWED_ORIGINS: List[str] = [
