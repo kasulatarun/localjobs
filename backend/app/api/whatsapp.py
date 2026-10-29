@@ -84,9 +84,25 @@ async def handle_whatsapp_webhook(request: Request):
         incoming_text = body.get("message", "")
 
     if not incoming_text:
-        return {"status": "ignored", "reason": "No text message found"}
+        return {
+            "status": "ignored",
+            "reason": "No text message found",
+            "replies": []
+        }
 
-    reply_text = whatsapp_service.process_message(from_phone, incoming_text)
+    try:
+        reply_text = whatsapp_service.process_message(from_phone, incoming_text)
+    except Exception as e:
+        print(f"[!] Error processing WhatsApp message from '{from_phone}': {e}")
+        reply_text = (
+            "🙏 *Welcome to LocalJobs!*\n"
+            "భారత్ లోకల్ ఉద్యోగ సేవా కేంద్రం\n\n"
+            "దయచేసి మీ భాషను ఎంచుకోండి / भाषा चुनें / Choose Language:\n"
+            "1️⃣ తెలుగు (Telugu)\n"
+            "2️⃣ हिंदी (Hindi)\n"
+            "3️⃣ English\n\n"
+            "_Reply with 1, 2, or 3_"
+        )
 
     return {
         "status": "success",

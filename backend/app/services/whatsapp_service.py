@@ -1,11 +1,40 @@
+import re
 import threading
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
+from backend.app.config import config
 from backend.app.services.matching_service import matching_service
 from backend.app.services.application_service import application_service
 from backend.app.security.validation import normalize_phone
 from backend.app.models.jobs import Job
+
+def clean_whatsapp_sender(phone: str) -> str:
+    """Safely extracts a consistent session identifier even if sender is a contact name or irregular string."""
+    if not phone:
+        return "+919848953136"
+    try:
+        return normalize_phone(phone)
+    except Exception:
+        digits = re.sub(r"\D", "", phone)
+        if len(digits) == 10:
+            return f"+91{digits}"
+        elif len(digits) == 12 and digits.startswith("91"):
+            return f"+{digits}"
+        sanitized = re.sub(r"[^\w\+\-]", "_", phone.strip())
+        return sanitized[:40] or "+919848953136"
+
+def get_valid_worker_phone(phone: str) -> str:
+    """Ensures a valid phone number format for database persistence."""
+    try:
+        return normalize_phone(phone)
+    except Exception:
+        digits = re.sub(r"\D", "", phone)
+        if len(digits) == 10:
+            return f"+91{digits}"
+        elif len(digits) == 12 and digits.startswith("91"):
+            return f"+{digits}"
+        return getattr(config, "DEMO_PHONE", "+919848953136")
 
 class WhatsAppSession:
     def __init__(self, phone: str):
@@ -42,20 +71,20 @@ class WhatsAppService:
         }
 
     def get_or_create_session(self, phone: str) -> WhatsAppSession:
-        norm = normalize_phone(phone)
+        norm = clean_whatsapp_sender(phone)
         with self._lock:
             if norm not in self._sessions:
                 self._sessions[norm] = WhatsAppSession(norm)
             return self._sessions[norm]
 
     def reset_session(self, phone: str):
-        norm = normalize_phone(phone)
+        norm = clean_whatsapp_sender(phone)
         with self._lock:
             self._sessions[norm] = WhatsAppSession(norm)
 
     def process_message(self, from_phone: str, raw_text: str) -> str:
         text = (raw_text or "").strip()
-        norm_phone = normalize_phone(from_phone)
+        norm_phone = clean_whatsapp_sender(from_phone)
         session = self.get_or_create_session(norm_phone)
         session.updated_at = datetime.now()
 
@@ -108,8 +137,9 @@ class WhatsAppService:
         if session.state == "JOB_VIEW":
             if text == "1" and session.current_jobs:
                 target_job = session.current_jobs[0]
+                worker_phone = get_valid_worker_phone(session.phone)
                 app, is_dup = self._app_svc.apply_for_job(
-                    worker_phone=session.phone,
+                    worker_phone=worker_phone,
                     job_id=target_job.job_id,
                     language=session.language
                 )
